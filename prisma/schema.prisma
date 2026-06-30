@@ -1,0 +1,433 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ShiftStatus {
+  OPEN
+  CLOSED
+}
+
+enum PaymentMethodType {
+  CASH
+  QRIS
+  BANK_TRANSFER
+  EWALLET
+  CARD
+}
+
+enum TransactionStatus {
+  DRAFT
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+  SALE
+  REFUND
+}
+
+enum OutletAddonStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+enum ReceiptPaperSize {
+  MM_58
+  MM_80
+}
+
+model User {
+  id           String        @id @default(uuid()) @db.Uuid
+  name         String
+  email        String        @unique
+  passwordHash String
+  phone        String?
+  roleId       String        @db.Uuid
+  outletId     String?       @db.Uuid
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+  role         Role          @relation(fields: [roleId], references: [id])
+  outlet       Outlet?       @relation(fields: [outletId], references: [id])
+  transactions Transaction[] @relation("CashierTransactions")
+  shifts       Shift[]
+}
+
+model Role {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String           @unique
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  users           User[]
+  rolePermissions RolePermission[]
+}
+
+model Permission {
+  id          String           @id @default(uuid()) @db.Uuid
+  module      String
+  action      String
+  description String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  roleLinks   RolePermission[]
+
+  @@unique([module, action])
+}
+
+model RolePermission {
+  id           String     @id @default(uuid()) @db.Uuid
+  roleId       String     @db.Uuid
+  permissionId String     @db.Uuid
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model Outlet {
+  id                String           @id @default(uuid()) @db.Uuid
+  name              String
+  address           String
+  phone             String
+  email             String?
+  taxRate           Decimal          @db.Decimal(5, 2)
+  serviceChargeRate Decimal          @db.Decimal(5, 2)
+  currency          String           @default("IDR")
+  timezone          String           @default("Asia/Jakarta")
+  receiptFooter     String?
+  isActive          Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  deletedAt         DateTime?
+  users             User[]
+  products          Product[]
+  shifts            Shift[]
+  transactions      Transaction[]
+  stockMovements    StockMovement[]
+  outletAddons      OutletAddon[]
+  receiptSetting    ReceiptSetting?
+  suppliers         Supplier[]
+}
+
+model Category {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String    @unique
+  description String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  products    Product[]
+}
+
+model Product {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  outletId             String                 @db.Uuid
+  categoryId           String                 @db.Uuid
+  name                 String
+  sku                  String                 @unique
+  barcode              String?
+  description          String?
+  imageUrl             String?
+  sellPrice            Decimal                @db.Decimal(12, 2)
+  costPrice            Decimal                @db.Decimal(12, 2)
+  stock                Int                    @default(0)
+  minStock             Int                    @default(0)
+  isStockTracked       Boolean                @default(true)
+  isActive             Boolean                @default(true)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  deletedAt            DateTime?
+  outlet               Outlet                 @relation(fields: [outletId], references: [id])
+  category             Category               @relation(fields: [categoryId], references: [id])
+  images               ProductImage[]
+  modifierGroups       ProductModifierGroup[]
+  transactionItems     TransactionItem[]
+  stockMovements       StockMovement[]
+}
+
+model ProductImage {
+  id        String    @id @default(uuid()) @db.Uuid
+  productId String    @db.Uuid
+  imageUrl  String
+  altText   String?
+  sortOrder Int       @default(0)
+  isPrimary Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ModifierGroup {
+  id          String                 @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  minSelect   Int                    @default(0)
+  maxSelect   Int                    @default(1)
+  isRequired  Boolean                @default(false)
+  isActive    Boolean                @default(true)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  deletedAt   DateTime?
+  modifiers   Modifier[]
+  products    ProductModifierGroup[]
+}
+
+model Modifier {
+  id              String                    @id @default(uuid()) @db.Uuid
+  modifierGroupId String                    @db.Uuid
+  name            String
+  price           Decimal                   @db.Decimal(12, 2)
+  costPrice       Decimal?                  @db.Decimal(12, 2)
+  sku             String?
+  stock           Int?
+  isStockTracked  Boolean                   @default(false)
+  isActive        Boolean                   @default(true)
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  deletedAt       DateTime?
+  modifierGroup   ModifierGroup             @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+  transactionMods TransactionItemModifier[]
+  stockMovements  StockMovement[]
+}
+
+model ProductModifierGroup {
+  id              String        @id @default(uuid()) @db.Uuid
+  productId       String        @db.Uuid
+  modifierGroupId String        @db.Uuid
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  modifierGroup   ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, modifierGroupId])
+}
+
+model Customer {
+  id           String        @id @default(uuid()) @db.Uuid
+  name         String
+  phone        String?
+  email        String?
+  address      String?
+  note         String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+  transactions Transaction[]
+}
+
+model Supplier {
+  id            String   @id @default(uuid()) @db.Uuid
+  outletId      String   @db.Uuid
+  name          String
+  contactPerson String?
+  phone         String?
+  email         String?
+  address       String?
+  note          String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+  outlet        Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+}
+
+model Shift {
+  id             String      @id @default(uuid()) @db.Uuid
+  outletId       String      @db.Uuid
+  userId         String      @db.Uuid
+  openedAt       DateTime
+  closedAt       DateTime?
+  openingCash    Decimal     @db.Decimal(12, 2)
+  closingCash    Decimal?    @db.Decimal(12, 2)
+  expectedCash   Decimal?    @db.Decimal(12, 2)
+  cashDifference Decimal?    @db.Decimal(12, 2)
+  status         ShiftStatus @default(OPEN)
+  note           String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  outlet         Outlet      @relation(fields: [outletId], references: [id])
+  user           User        @relation(fields: [userId], references: [id])
+  transactions   Transaction[]
+}
+
+model PaymentMethod {
+  id           String               @id @default(uuid()) @db.Uuid
+  name         String
+  type         PaymentMethodType
+  isAddon      Boolean              @default(false)
+  addonSlug    String?
+  isActive     Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  payments     TransactionPayment[]
+}
+
+model Transaction {
+  id                 String               @id @default(uuid()) @db.Uuid
+  transactionNumber  String               @unique
+  outletId           String               @db.Uuid
+  cashierId          String               @db.Uuid
+  customerId         String?              @db.Uuid
+  shiftId            String?              @db.Uuid
+  subtotal           Decimal              @db.Decimal(12, 2)
+  discountTotal      Decimal              @db.Decimal(12, 2)
+  taxTotal           Decimal              @db.Decimal(12, 2)
+  serviceChargeTotal Decimal              @db.Decimal(12, 2)
+  grandTotal         Decimal              @db.Decimal(12, 2)
+  paidTotal          Decimal              @db.Decimal(12, 2)
+  changeTotal        Decimal              @db.Decimal(12, 2)
+  status             TransactionStatus    @default(PAID)
+  note               String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  deletedAt          DateTime?
+  outlet             Outlet               @relation(fields: [outletId], references: [id])
+  cashier            User                 @relation("CashierTransactions", fields: [cashierId], references: [id])
+  customer           Customer?            @relation(fields: [customerId], references: [id])
+  shift              Shift?               @relation(fields: [shiftId], references: [id])
+  items              TransactionItem[]
+  payments           TransactionPayment[]
+}
+
+model TransactionItem {
+  id                   String                    @id @default(uuid()) @db.Uuid
+  transactionId        String                    @db.Uuid
+  productId            String                    @db.Uuid
+  productNameSnapshot  String
+  productImageSnapshot String?
+  skuSnapshot          String?
+  quantity             Int
+  basePrice            Decimal                   @db.Decimal(12, 2)
+  modifierTotal        Decimal                   @db.Decimal(12, 2)
+  discountTotal        Decimal                   @db.Decimal(12, 2)
+  subtotal             Decimal                   @db.Decimal(12, 2)
+  note                 String?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  transaction          Transaction               @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  product              Product                   @relation(fields: [productId], references: [id])
+  modifiers            TransactionItemModifier[]
+}
+
+model TransactionItemModifier {
+  id                   String          @id @default(uuid()) @db.Uuid
+  transactionItemId    String          @db.Uuid
+  modifierId           String          @db.Uuid
+  modifierNameSnapshot String
+  priceSnapshot        Decimal         @db.Decimal(12, 2)
+  quantity             Int
+  subtotal             Decimal         @db.Decimal(12, 2)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  transactionItem      TransactionItem @relation(fields: [transactionItemId], references: [id], onDelete: Cascade)
+  modifier             Modifier        @relation(fields: [modifierId], references: [id])
+}
+
+model TransactionPayment {
+  id              String         @id @default(uuid()) @db.Uuid
+  transactionId   String         @db.Uuid
+  paymentMethodId String         @db.Uuid
+  amount          Decimal        @db.Decimal(12, 2)
+  referenceNumber String?
+  status          PaymentStatus  @default(PAID)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  transaction     Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  paymentMethod   PaymentMethod  @relation(fields: [paymentMethodId], references: [id])
+}
+
+model StockMovement {
+  id            String            @id @default(uuid()) @db.Uuid
+  outletId      String            @db.Uuid
+  productId     String?           @db.Uuid
+  modifierId    String?           @db.Uuid
+  type          StockMovementType
+  quantity      Int
+  beforeStock   Int
+  afterStock    Int
+  referenceType String?
+  referenceId   String?
+  note          String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  outlet        Outlet            @relation(fields: [outletId], references: [id])
+  product       Product?          @relation(fields: [productId], references: [id])
+  modifier      Modifier?         @relation(fields: [modifierId], references: [id])
+}
+
+model Addon {
+  id           String        @id @default(uuid()) @db.Uuid
+  name         String
+  slug         String        @unique
+  description  String
+  price        Decimal       @db.Decimal(12, 2)
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  outletAddons OutletAddon[]
+}
+
+model OutletAddon {
+  id          String            @id @default(uuid()) @db.Uuid
+  outletId    String            @db.Uuid
+  addonId     String            @db.Uuid
+  status      OutletAddonStatus @default(INACTIVE)
+  activatedAt DateTime?
+  expiredAt   DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  outlet      Outlet            @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  addon       Addon             @relation(fields: [addonId], references: [id], onDelete: Cascade)
+
+  @@unique([outletId, addonId])
+}
+
+model ReceiptSetting {
+  id                String           @id @default(uuid()) @db.Uuid
+  outletId          String           @unique @db.Uuid
+  showLogo          Boolean          @default(true)
+  logoUrl           String?
+  headerText        String?
+  footerText        String?
+  showCashierName   Boolean          @default(true)
+  showCustomerName  Boolean          @default(true)
+  showTax           Boolean          @default(true)
+  showServiceCharge Boolean          @default(true)
+  paperSize         ReceiptPaperSize @default(MM_80)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  outlet            Outlet           @relation(fields: [outletId], references: [id], onDelete: Cascade)
+}
+
+model AppSetting {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

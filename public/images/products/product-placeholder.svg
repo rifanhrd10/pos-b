@@ -1,0 +1,8 @@
+<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" rx="48" fill="#F5F8FF"/>
+  <rect x="102" y="98" width="596" height="404" rx="32" fill="#DCE9FF"/>
+  <path d="M182 428L300 306L392 380L474 282L618 428H182Z" fill="#135FEF" fill-opacity="0.85"/>
+  <circle cx="286" cy="236" r="44" fill="#22D3EE"/>
+  <path d="M276 176C325 160 394 170 451 224C507 277 530 347 526 407" stroke="#0A1F54" stroke-width="18" stroke-linecap="round"/>
+  <text x="400" y="548" text-anchor="middle" fill="#0A1F54" font-family="Arial, sans-serif" font-size="34" font-weight="700">Bayaro Product</text>
+</svg>

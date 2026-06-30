@@ -1,0 +1,41 @@
+{
+  "name": "bayaro-pos",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node ./scripts/dev-server.mjs",
+    "dev:raw": "next dev",
+    "build": "prisma generate && rm -rf .next-build .next/types && NEXT_DIST_DIR=.next-build next build",
+    "start": "NEXT_DIST_DIR=.next-build next start",
+    "lint": "next lint",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "node --env-file=.env ./node_modules/tsx/dist/cli.mjs prisma/seed.ts",
+    "full-access": "node --env-file=.env ./node_modules/tsx/dist/cli.mjs scripts/enable-full-access.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.10.1",
+    "bcryptjs": "^2.4.3",
+    "clsx": "^2.1.1",
+    "jose": "^5.9.6",
+    "lucide-react": "^0.525.0",
+    "next": "^15.3.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwind-merge": "^3.3.1",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^24.0.13",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "autoprefixer": "^10.4.21",
+    "dotenv": "^16.5.0",
+    "postcss": "^8.5.6",
+    "prisma": "^6.10.1",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}

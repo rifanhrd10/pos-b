@@ -1,0 +1,71 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { modifierGroupSchema } from "@/lib/validations";
+
+function serializeGroup(group: {
+  id: string;
+  name: string;
+  description: string | null;
+  minSelect: number;
+  maxSelect: number;
+  isRequired: boolean;
+  isActive: boolean;
+  _count?: { modifiers: number; products: number };
+}) {
+  return {
+    id: group.id,
+    name: group.name,
+    description: group.description,
+    minSelect: group.minSelect,
+    maxSelect: group.maxSelect,
+    isRequired: group.isRequired,
+    isActive: group.isActive,
+    modifierCount: group._count?.modifiers || 0,
+    productCount: group._count?.products || 0,
+  };
+}
+
+export async function GET() {
+  const groups = await prisma.modifierGroup.findMany({
+    where: { deletedAt: null },
+    include: {
+      _count: {
+        select: {
+          modifiers: { where: { deletedAt: null } },
+          products: true,
+        },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  return NextResponse.json(groups.map(serializeGroup));
+}
+
+export async function POST(request: Request) {
+  const parsed = modifierGroupSchema.safeParse(await request.json());
+  if (!parsed.success) {
+    return NextResponse.json({ message: parsed.error.issues[0]?.message || "Input grup topping tidak valid." }, { status: 400 });
+  }
+
+  const group = await prisma.modifierGroup.create({
+    data: {
+      name: parsed.data.name,
+      description: parsed.data.description || null,
+      minSelect: parsed.data.minSelect,
+      maxSelect: parsed.data.maxSelect,
+      isRequired: parsed.data.isRequired,
+      isActive: parsed.data.isActive,
+    },
+    include: {
+      _count: {
+        select: {
+          modifiers: { where: { deletedAt: null } },
+          products: true,
+        },
+      },
+    },
+  });
+
+  return NextResponse.json(serializeGroup(group));
+}
