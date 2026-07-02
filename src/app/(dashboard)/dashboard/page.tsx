@@ -1,178 +1,192 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
-import { starterHighlights, lockedModules } from "@/lib/nav";
-import { decimalToNumber, rupiah, formatDate } from "@/lib/utils";
+import { TrendingUp, TrendingDown, ShoppingCart, Users, Package, ArrowRight, BarChart2, Layers } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-export default async function DashboardPage() {
-  const [categoryCount, productCount, transactionCount, transactionTotal, recentTransactions, activeCashiers] = await Promise.all([
-    prisma.category.count({ where: { deletedAt: null } }),
-    prisma.product.count({ where: { deletedAt: null } }),
-    prisma.transaction.count({ where: { deletedAt: null } }),
-    prisma.transaction.aggregate({
-      _sum: { grandTotal: true },
-      where: { status: "PAID", deletedAt: null },
-    }),
-    prisma.transaction.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      include: { cashier: true },
-    }),
-    prisma.user.count({ where: { deletedAt: null, isActive: true } }),
-  ]);
+const stats = [
+  { label: "Total Pengguna", value: "2,840", change: "+12%", up: true },
+  { label: "Transaksi Hari Ini", value: "148", change: "+8%", up: true },
+  { label: "Produk Aktif", value: "634", change: "+3%", up: true },
+  { label: "Omzet Bulan Ini", value: "Rp 48,2 jt", change: "-2%", up: false },
+];
 
-  const summary = [
-    { label: "Kategori aktif", value: String(categoryCount) },
-    { label: "Produk aktif", value: String(productCount) },
-    { label: "Transaksi", value: String(transactionCount) },
-    { label: "Omzet", value: rupiah(decimalToNumber(transactionTotal._sum.grandTotal)) },
-  ];
-  const avgTransaction = transactionCount > 0 ? decimalToNumber(transactionTotal._sum.grandTotal) / transactionCount : 0;
-  const quickLinks = [
-    { href: "/kasir", label: "Kasir", description: "Buka transaksi baru" },
-    { href: "/produk", label: "Produk", description: "Kelola menu dan harga" },
-    { href: "/laporan", label: "Laporan", description: "Pantau penjualan harian" },
-    { href: "/pengaturan", label: "Pengaturan", description: "Atur outlet dan struk" },
-  ];
+const recentActivity = [
+  { id: "TRX-20240601", user: "Budi Santoso", amount: "Rp 245.000", status: "success", date: "2 menit lalu" },
+  { id: "TRX-20240602", user: "Siti Rahma", amount: "Rp 120.000", status: "success", date: "8 menit lalu" },
+  { id: "TRX-20240603", user: "Andi Wijaya", amount: "Rp 890.000", status: "warning", date: "15 menit lalu" },
+  { id: "TRX-20240604", user: "Rina Kusuma", amount: "Rp 67.500", status: "success", date: "22 menit lalu" },
+  { id: "TRX-20240605", user: "Doni Prasetyo", amount: "Rp 312.000", status: "danger", date: "1 jam lalu" },
+];
 
+const topProducts = [
+  { name: "Kopi Susu Gula Aren", sold: 248, revenue: "Rp 3,7 jt", pct: 88 },
+  { name: "Matcha Latte", sold: 190, revenue: "Rp 2,9 jt", pct: 72 },
+  { name: "Americano", sold: 165, revenue: "Rp 1,8 jt", pct: 62 },
+  { name: "Croissant Original", sold: 130, revenue: "Rp 1,3 jt", pct: 49 },
+  { name: "Teh Tarik Spesial", sold: 112, revenue: "Rp 1,1 jt", pct: 42 },
+];
+
+const quickLinks = [
+  { href: "/ui/tables", label: "Tables", description: "Lihat komponen tabel", icon: BarChart2 },
+  { href: "/ui/forms", label: "Forms", description: "Elemen form input", icon: Package },
+  { href: "/pages/calendar", label: "Calendar", description: "Halaman kalender", icon: ShoppingCart },
+  { href: "/profile", label: "Profile", description: "Halaman profil pengguna", icon: Users },
+];
+
+const templateInfo = [
+  { label: "Halaman", value: "17" },
+  { label: "Komponen", value: "40+" },
+  { label: "Framework", value: "Next.js 15" },
+  { label: "Style", value: "Tailwind CSS" },
+];
+
+export default function DashboardPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Dashboard Bayaro"
-        description="Ringkasan operasional Bayaro POS dengan seluruh modul inti dan tambahan yang sudah aktif di aplikasi ini."
+        title="Dashboard"
+        description="Selamat datang di Bayaro Admin Template. Lihat ringkasan statistik dan navigasi ke komponen UI."
         breadcrumb="Beranda / Dashboard"
         actions={
-          <Link href="/kasir">
-            <Button>Buka Kasir</Button>
+          <Link href="/ui/tables">
+            <Button>Jelajahi Komponen</Button>
           </Link>
         }
       />
 
+      {/* Stats Grid */}
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {summary.map((item) => (
+        {stats.map((item) => (
           <div key={item.label} className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-soft">
             <p className="text-sm text-slate-500">{item.label}</p>
             <p className="mt-3 text-3xl font-bold text-slate-900">{item.value}</p>
+            <div className={`mt-3 flex items-center gap-1.5 text-sm font-medium ${item.up ? "text-emerald-600" : "text-rose-500"}`}>
+              {item.up ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              <span>{item.change} dari bulan lalu</span>
+            </div>
           </div>
         ))}
       </section>
 
+      {/* Main Content */}
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
-        <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-soft">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-900">Highlight Sistem</h2>
-              <p className="mt-2 text-sm text-slate-500">Modul inti dan tambahan Bayaro aktif untuk operasional harian.</p>
-            </div>
-            <Badge tone="success">Full Access</Badge>
-          </div>
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            {starterHighlights.map((item) => (
-              <div key={item.label} className="rounded-[20px] bg-bayaro-soft p-5">
-                <p className="text-sm text-slate-500">{item.label}</p>
-                <p className="mt-2 text-lg font-semibold text-slate-900">{item.value}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-5 rounded-[20px] border border-dashed border-slate-200 p-5">
-            <p className="font-semibold text-slate-900">Alur data yang sudah siap</p>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Kategori masuk ke produk, produk tampil di kasir, checkout membuat transaksi, dan snapshot item tersimpan untuk laporan dasar serta cetak struk.
-            </p>
-          </div>
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            {quickLinks.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-[20px] border border-slate-200 bg-slate-50 p-4 transition hover:border-bayaro-blue hover:bg-white"
-              >
-                <p className="font-semibold text-slate-900">{item.label}</p>
-                <p className="mt-2 text-sm text-slate-500">{item.description}</p>
-              </Link>
-            ))}
-          </div>
-        </div>
-
+        {/* Left Column */}
         <div className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-1">
-            <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-soft">
-              <p className="text-sm text-slate-500">Rata-rata transaksi</p>
-              <p className="mt-2 text-2xl font-bold text-slate-900">{rupiah(avgTransaction)}</p>
-              <p className="mt-2 text-sm text-slate-500">Nilai rata-rata dari seluruh transaksi yang tercatat.</p>
-            </div>
-            <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-soft">
-              <p className="text-sm text-slate-500">Tim aktif</p>
-              <p className="mt-2 text-2xl font-bold text-slate-900">{activeCashiers} akun</p>
-              <p className="mt-2 text-sm text-slate-500">Akun owner, admin, dan kasir yang siap masuk ke sistem.</p>
-            </div>
-            <div className="rounded-[24px] border border-slate-200 bg-[#071a49] p-5 text-white shadow-soft">
-              <p className="text-sm text-blue-200">Aksi cepat</p>
-              <p className="mt-2 text-xl font-semibold">Mulai transaksi baru</p>
-              <p className="mt-2 text-sm leading-6 text-blue-100">Masuk ke kasir untuk checkout, topping, pembayaran, dan cetak struk.</p>
-              <div className="mt-4">
-                <Link href="/kasir">
-                  <Button className="bg-white text-[#071a49] hover:bg-slate-100">Buka Kasir</Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-
+          {/* Top Products */}
           <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-soft">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-xl font-semibold text-slate-900">Transaksi terbaru</h2>
-              <Link href="/transaksi">
-                <Button variant="secondary">Lihat Semua</Button>
-              </Link>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Produk Terlaris</h2>
+                <p className="mt-1 text-sm text-slate-500">Berdasarkan jumlah terjual bulan ini</p>
+              </div>
+              <Badge tone="info">Top 5</Badge>
             </div>
             <div className="mt-5 space-y-4">
-              {recentTransactions.length ? (
-                recentTransactions.map((transaction) => (
-                  <Link
-                    key={transaction.id}
-                    href={`/transaksi/${transaction.id}`}
-                    className="block rounded-[20px] border border-slate-200 p-4 transition hover:border-bayaro-blue"
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="font-semibold text-slate-900">{transaction.transactionNumber}</p>
-                        <p className="mt-1 text-sm text-slate-500">
-                          {transaction.cashier.name} • {formatDate(transaction.createdAt)}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-bayaro-navy">{rupiah(decimalToNumber(transaction.grandTotal))}</p>
-                        <Badge tone="success">{transaction.status}</Badge>
-                      </div>
+              {topProducts.map((product) => (
+                <div key={product.name}>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-slate-800">{product.name}</span>
+                    <div className="flex items-center gap-3 text-slate-500">
+                      <span>{product.sold} terjual</span>
+                      <span className="font-semibold text-slate-900">{product.revenue}</span>
                     </div>
-                  </Link>
-                ))
-              ) : (
-                <p className="rounded-[20px] bg-slate-50 p-4 text-sm text-slate-500">Belum ada transaksi.</p>
-              )}
+                  </div>
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full bg-bayaro-blue"
+                      style={{ width: `${product.pct}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
 
-      <section className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-soft">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-900">Modul Tambahan Tersedia</h2>
-            <p className="mt-2 text-sm text-slate-500">Seluruh modul tambahan Bayaro sudah masuk ke aplikasi ini dan dapat dipakai sesuai kebutuhan operasional.</p>
-          </div>
-          <Link href="/add-on-starter">
-            <Button variant="secondary">Lihat Modul</Button>
-          </Link>
-        </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {lockedModules.map((item) => (
-            <div key={item} className="rounded-[18px] bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
-              {item}
+          {/* Quick Links */}
+          <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-soft">
+            <h2 className="text-xl font-semibold text-slate-900">Navigasi Cepat</h2>
+            <p className="mt-1 text-sm text-slate-500">Akses halaman dan komponen dengan mudah</p>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {quickLinks.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="group flex items-start gap-4 rounded-[20px] border border-slate-200 bg-slate-50 p-4 transition hover:border-bayaro-blue hover:bg-white"
+                  >
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-bayaro-soft text-bayaro-blue">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-slate-900">{item.label}</p>
+                      <p className="mt-0.5 text-sm text-slate-500">{item.description}</p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 flex-shrink-0 text-slate-300 transition group-hover:text-bayaro-blue" />
+                  </Link>
+                );
+              })}
             </div>
-          ))}
+          </div>
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-5">
+          {/* Template Info Card */}
+          <div className="rounded-[24px] bg-[#071a49] p-6 shadow-soft">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10">
+                <Layers className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-blue-200">Template Info</p>
+                <p className="text-lg font-semibold text-white">Bayaro Admin</p>
+              </div>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              {templateInfo.map((item) => (
+                <div key={item.label} className="rounded-[16px] bg-white/10 p-4">
+                  <p className="text-xs text-blue-200">{item.label}</p>
+                  <p className="mt-1 text-lg font-bold text-white">{item.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-5">
+              <Link href="/ui/tables">
+                <Button className="w-full justify-center bg-white py-2.5 text-[#071a49] hover:bg-slate-100">
+                  Jelajahi Komponen
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-soft">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-xl font-semibold text-slate-900">Aktivitas Terbaru</h2>
+              <Badge tone="default">Live</Badge>
+            </div>
+            <div className="mt-5 space-y-3">
+              {recentActivity.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex items-center justify-between gap-4 rounded-[16px] border border-slate-100 bg-slate-50 p-4"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-900">{activity.user}</p>
+                    <p className="mt-0.5 text-xs text-slate-400">{activity.id} • {activity.date}</p>
+                  </div>
+                  <div className="flex flex-shrink-0 flex-col items-end gap-1.5">
+                    <span className="text-sm font-semibold text-slate-900">{activity.amount}</span>
+                    <Badge tone={activity.status as "success" | "warning" | "danger"}>
+                      {activity.status === "success" ? "Berhasil" : activity.status === "warning" ? "Pending" : "Gagal"}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
     </div>
