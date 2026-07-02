@@ -6,13 +6,16 @@ import {
   FileText,
   FolderOpen,
   Kanban,
+  KeyRound,
   LayoutDashboard,
+  LogIn,
   MessageSquare,
   Settings,
   Table,
   Tag,
   ToggleLeft,
   User,
+  UserPlus,
 } from "lucide-react";
 
 export type NavItem = {
@@ -26,6 +29,7 @@ export type NavSection = {
   label: string;
   description: string;
   items: string[];
+  dropdown?: boolean;
 };
 
 export const navItems: NavItem[] = [
@@ -44,6 +48,9 @@ export const navItems: NavItem[] = [
   { href: "/pages/pricing", label: "Pricing", icon: BarChart3 },
   { href: "/profile", label: "Profile", icon: User },
   { href: "/settings", label: "Pengaturan", icon: Settings },
+  { href: "/login", label: "Login", icon: LogIn },
+  { href: "/register", label: "Register", icon: UserPlus },
+  { href: "/forgot-password", label: "Lupa Password", icon: KeyRound },
 ];
 
 export const navSections: NavSection[] = [
@@ -66,5 +73,11 @@ export const navSections: NavSection[] = [
     label: "User",
     description: "Akun dan pengaturan pengguna.",
     items: ["/profile", "/settings"],
+  },
+  {
+    label: "Auth Pages",
+    description: "Halaman autentikasi.",
+    items: ["/login", "/register", "/forgot-password"],
+    dropdown: true,
   },
 ];

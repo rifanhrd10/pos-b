@@ -4,10 +4,11 @@ import { useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup } from "@/components/ui/radio";
+import { Switch } from "@/components/ui/switch";
 
 export default function FormsPage() {
   const [checkboxes, setCheckboxes] = useState({ a: true, b: false, c: true });
@@ -124,26 +125,17 @@ export default function FormsPage() {
       {/* Radio */}
       <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-soft">
         <h2 className="font-sora text-lg font-semibold text-slate-900">Radio Button</h2>
-        <p className="mt-1 mb-5 text-sm text-slate-500">Pilihan tunggal menggunakan radio button.</p>
-        <div className="flex flex-col gap-4">
-          {[
-            { value: "tunai", label: "Pembayaran tunai" },
-            { value: "kartu", label: "Kartu kredit/debit" },
-            { value: "transfer", label: "Transfer bank" },
-          ].map((opt) => (
-            <label key={opt.value} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
-              <input
-                type="radio"
-                name="payment"
-                value={opt.value}
-                checked={radio === opt.value}
-                onChange={() => setRadio(opt.value)}
-                className="accent-bayaro-navy h-4 w-4"
-              />
-              {opt.label}
-            </label>
-          ))}
-        </div>
+        <p className="mt-1 mb-5 text-sm text-slate-500">Pilihan tunggal menggunakan radio button dengan desain custom.</p>
+        <RadioGroup
+          name="payment"
+          value={radio}
+          onChange={setRadio}
+          options={[
+            { value: "tunai", label: "Pembayaran tunai", description: "Bayar langsung di kasir" },
+            { value: "kartu", label: "Kartu kredit / debit", description: "Visa, Mastercard, GPN" },
+            { value: "transfer", label: "Transfer bank", description: "BCA, BRI, Mandiri, BNI" },
+          ]}
+        />
       </div>
 
       {/* Switch */}

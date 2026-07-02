@@ -8,8 +8,8 @@ function DashboardFooter() {
   return (
     <footer className="border-t border-slate-200 bg-white px-6 py-4">
       <div className="flex flex-col gap-2 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
-        <p>Bayaro POS Full Access</p>
-        <p>Dashboard, kasir, transaksi, laporan, dan pengaturan outlet dalam satu sistem.</p>
+        <p>Bayaro Admin Template</p>
+        <p>Dashboard, tabel, form, kalender, kanban, dan komponen UI lengkap dalam satu template.</p>
       </div>
     </footer>
   );
@@ -50,9 +50,7 @@ export function DashboardShell({
           />
         </div>
         <main className="flex-1 px-4 py-4 md:px-6 md:py-5">
-          <div className="min-h-full rounded-[28px] border border-white/60 bg-white/42 p-4 shadow-[0_20px_50px_rgba(15,23,42,0.06)] backdrop-blur md:p-5">
-            {children}
-          </div>
+          {children}
         </main>
         <DashboardFooter />
       </div>
