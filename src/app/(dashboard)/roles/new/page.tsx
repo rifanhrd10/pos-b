@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { createRole } from "@/actions/outlets";
 import { PERMISSIONS } from "@/lib/permissions";
 import type { Permission } from "@/lib/permissions";
+import { getErrorMessage } from "@/lib/errors";
 
 const PERMISSION_CATEGORIES: Record<string, Permission[]> = {
   Dashboard: ["dashboard.view"],
@@ -24,7 +25,7 @@ const PERMISSION_CATEGORIES: Record<string, Permission[]> = {
 
 export default function NewRolePage() {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
 
@@ -43,20 +44,25 @@ export default function NewRolePage() {
     }
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    setIsPending(true);
     const form = new FormData(e.currentTarget);
     form.set("permissions", JSON.stringify(selectedPermissions));
 
-    startTransition(async () => {
+    try {
       const result = await createRole(form);
       if (result.error) {
-        setError(result.error);
+        setError(getErrorMessage(result.error));
       } else {
         router.push("/roles");
       }
-    });
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsPending(false);
+    }
   }
 
   return (

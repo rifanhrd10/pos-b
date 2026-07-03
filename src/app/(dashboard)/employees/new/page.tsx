@@ -1,41 +1,52 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { createEmployee } from "@/actions/employees";
-import { useEffect } from "react";
+import { getErrorMessage } from "@/lib/errors";
 
 export default function NewEmployeePage() {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
   const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
   const [outlets, setOutlets] = useState<{ id: string; name: string }[]>([]);
   const [selectedOutlets, setSelectedOutlets] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch("/api/data/roles").then((r) => r.json()).then(setRoles).catch(() => {});
-    fetch("/api/data/outlets").then((r) => r.json()).then(setOutlets).catch(() => {});
+    fetch("/api/data/roles")
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setRoles(data); })
+      .catch(() => {});
+    fetch("/api/data/outlets")
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setOutlets(data); })
+      .catch(() => {});
   }, []);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    setIsPending(true);
     const form = new FormData(e.currentTarget);
     form.set("outletIds", JSON.stringify(selectedOutlets));
 
-    startTransition(async () => {
+    try {
       const result = await createEmployee(form);
       if (result.error) {
-        setError(result.error);
+        setError(getErrorMessage(result.error));
       } else {
         router.push("/employees");
       }
-    });
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsPending(false);
+    }
   }
 
   function toggleOutlet(id: string) {

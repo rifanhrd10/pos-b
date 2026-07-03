@@ -70,7 +70,7 @@ export async function setupBusiness(formData: FormData) {
     });
   }
 
-  return { success: true, businessId: business.id };
+  return { success: true };
 }
 
 export async function createFirstOutlet(formData: FormData) {
@@ -126,7 +126,7 @@ export async function createFirstOutlet(formData: FormData) {
     });
   }
 
-  return { success: true, outletId: outlet.id };
+  return { success: true };
 }
 
 export async function seedDemoData() {

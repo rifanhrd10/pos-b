@@ -4,7 +4,6 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { registerSchema, loginSchema } from "@/lib/validations";
 import { signIn } from "@/lib/auth";
-import { DEFAULT_ROLES } from "@/lib/permissions";
 
 export async function registerUser(formData: FormData) {
   const raw = {
@@ -33,12 +32,17 @@ export async function registerUser(formData: FormData) {
     data: { name, email, password: hashedPassword },
   });
 
-  // Auto sign-in
-  await signIn("credentials", {
-    email,
-    password,
-    redirect: false,
-  });
+  try {
+    const signInResult = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    if (signInResult && typeof signInResult === "object" && "error" in signInResult && typeof signInResult.error === "string" && signInResult.error) {
+      return { error: signInResult.error };
+    }
+  } catch {}
 
   return { success: true };
 }
@@ -55,13 +59,26 @@ export async function loginUser(formData: FormData) {
   }
 
   try {
-    await signIn("credentials", {
+    const signInResult = await signIn("credentials", {
       email: raw.email,
       password: raw.password,
       redirect: false,
     });
+
+    if (signInResult && typeof signInResult === "object" && "error" in signInResult && typeof signInResult.error === "string" && signInResult.error) {
+      return { error: signInResult.error };
+    }
+
     return { success: true };
-  } catch {
+  } catch (error) {
+    if (error && typeof error === "object" && "type" in error && error.type === "CredentialsSignin") {
+      return { error: "Email atau password salah" };
+    }
+
+    if (error && typeof error === "object" && "message" in error && typeof error.message === "string" && error.message) {
+      return { error: error.message };
+    }
+
     return { error: "Email atau password salah" };
   }
 }

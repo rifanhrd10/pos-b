@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, Store } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createOutlet } from "@/actions/outlets";
+import { getErrorMessage } from "@/lib/errors";
 
 export default function NewOutletPage() {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState("");
@@ -33,20 +34,25 @@ export default function NewOutletPage() {
     }
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    setIsPending(true);
     const form = new FormData(e.currentTarget);
     if (logoUrl) form.set("logo", logoUrl);
 
-    startTransition(async () => {
+    try {
       const result = await createOutlet(form);
       if (result.error) {
-        setError(result.error);
+        setError(getErrorMessage(result.error));
       } else {
         router.push("/outlets");
       }
-    });
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsPending(false);
+    }
   }
 
   return (

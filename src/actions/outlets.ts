@@ -72,7 +72,7 @@ export async function createOutlet(formData: FormData) {
     });
   }
 
-  return { success: true, outletId: outlet.id };
+  return { success: true };
 }
 
 export async function updateOutlet(id: string, formData: FormData) {

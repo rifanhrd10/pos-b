@@ -72,7 +72,7 @@ export async function createEmployee(formData: FormData) {
     });
   }
 
-  return { success: true, employeeId: employee.id };
+  return { success: true };
 }
 
 export async function updateEmployee(id: string, formData: FormData) {
