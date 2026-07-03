@@ -11,11 +11,14 @@ import {
   LogIn,
   MessageSquare,
   Settings,
+  Shield,
+  Store,
   Table,
   Tag,
   ToggleLeft,
   User,
   UserPlus,
+  Users,
 } from "lucide-react";
 
 export type NavItem = {
@@ -34,6 +37,9 @@ export type NavSection = {
 
 export const navItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/employees", label: "Karyawan", icon: Users },
+  { href: "/outlets", label: "Outlet", icon: Store },
+  { href: "/roles", label: "Role & Akses", icon: Shield },
   { href: "/ui/tables", label: "Tables", icon: Table },
   { href: "/ui/forms", label: "Forms", icon: FileText },
   { href: "/ui/cards", label: "Cards", icon: CreditCard },
@@ -58,6 +64,11 @@ export const navSections: NavSection[] = [
     label: "Ringkasan",
     description: "Overview dan statistik utama.",
     items: ["/dashboard"],
+  },
+  {
+    label: "Operasional",
+    description: "Kelola karyawan, outlet, dan hak akses.",
+    items: ["/employees", "/outlets", "/roles"],
   },
   {
     label: "UI Elements",
