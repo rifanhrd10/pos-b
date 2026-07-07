@@ -40,7 +40,7 @@ export default function BusinessPage() {
       setError(result.error);
       setLoading(false);
     } else {
-      router.push("/onboarding/outlet");
+      router.push("/onboarding/plan");
     }
   }
 
@@ -119,6 +119,21 @@ export default function BusinessPage() {
           <div className="space-y-1.5 group/input">
             <label className="text-sm font-bold text-slate-900">Provinsi</label>
             <Input name="province" placeholder="DKI Jakarta" className="h-11 border-slate-200 bg-white text-sm shadow-sm transition-all focus:border-bayaro-blue focus:ring-4 focus:ring-bayaro-blue/10 hover:border-slate-300" />
+          </div>
+
+          <div className="space-y-1.5 md:col-span-2 group/input">
+            <label className="text-sm font-medium text-slate-700">
+              NPWP <span className="text-slate-400 font-normal">(Opsional)</span>
+            </label>
+            <Input
+              name="npwp"
+              placeholder="00.000.000.0-000.000"
+              defaultValue=""
+              className="h-11 border-slate-200 bg-white text-sm shadow-sm transition-all focus:border-bayaro-blue focus:ring-4 focus:ring-bayaro-blue/10 hover:border-slate-300"
+            />
+            <p className="text-xs text-slate-400">
+              Untuk kebutuhan invoicing dan laporan pajak.
+            </p>
           </div>
         </div>
 
