@@ -25,7 +25,7 @@ export const PERMISSIONS = {
 
 export type Permission = keyof typeof PERMISSIONS;
 
-const ALL_PERMISSIONS = Object.keys(PERMISSIONS) as Permission[];
+export const ALL_PERMISSIONS = Object.keys(PERMISSIONS) as Permission[];
 
 export const DEFAULT_ROLES: Record<string, { name: string; description: string; permissions: Permission[] }> = {
   OWNER: {
@@ -73,4 +73,27 @@ export function hasPermission(userPermissions: string[], required: Permission | 
 
 export function hasAnyPermission(userPermissions: string[], required: Permission[]): boolean {
   return required.some((p) => userPermissions.includes(p));
+}
+
+export async function getCurrentEmployeePermissions(
+  userId: string,
+  businessId: string
+): Promise<string[]> {
+  const { prisma } = await import("@/lib/prisma");
+  const employee = await prisma.employee.findFirst({
+    where: { userId, businessId, isActive: true },
+    include: { role: true },
+  });
+  return (employee?.role?.permissions as string[]) ?? [];
+}
+
+export function requirePermission(
+  userPermissions: string[],
+  required: Permission | Permission[],
+  all = false
+): boolean {
+  const reqs = Array.isArray(required) ? required : [required];
+  return all
+    ? reqs.every((p) => userPermissions.includes(p))
+    : reqs.some((p) => userPermissions.includes(p));
 }

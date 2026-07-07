@@ -18,10 +18,12 @@ function DashboardFooter() {
 export function DashboardShell({
   userName,
   outletName,
+  permissions,
   children,
 }: {
   userName: string;
   outletName: string;
+  permissions: string[];
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -33,6 +35,7 @@ export function DashboardShell({
         collapsed={collapsed}
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
+        permissions={permissions}
       />
       <div className="flex min-h-screen min-w-0 flex-col">
         <div className="sticky top-0 z-30 border-b border-slate-200 bg-[#f7faff]/95 px-4 py-4 backdrop-blur md:px-6">

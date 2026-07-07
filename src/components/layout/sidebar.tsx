@@ -16,9 +16,12 @@ const TOUR_MAP: Record<string, string> = {
   "/settings": "settings",
 };
 
-function SidebarContent({ collapsed }: { collapsed: boolean }) {
+function SidebarContent({ collapsed, permissions }: { collapsed: boolean; permissions: string[] }) {
   const pathname = usePathname();
-  const itemMap = new Map(navItems.map((item) => [item.href, item]));
+  const visibleItems = navItems.filter(
+    (item) => !item.permission || permissions.includes(item.permission)
+  );
+  const itemMap = new Map(visibleItems.map((item) => [item.href, item]));
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
 
   const toggleDropdown = (label: string) => {
@@ -40,6 +43,8 @@ function SidebarContent({ collapsed }: { collapsed: boolean }) {
       <div className="flex-1 space-y-6 overflow-y-auto pr-1">
         {navSections.map((section) => {
           const isOpen = openDropdowns[section.label] ?? false;
+          const sectionItems = section.items.filter((href) => itemMap.has(href));
+          if (sectionItems.length === 0) return null;
 
           return (
             <div key={section.label}>
@@ -69,7 +74,7 @@ function SidebarContent({ collapsed }: { collapsed: boolean }) {
               {/* Items: always show for normal sections, conditionally for dropdowns */}
               {(!section.dropdown || isOpen || collapsed) && (
                 <nav className="space-y-1.5">
-                  {section.items.map((href) => {
+                  {sectionItems.map((href) => {
                     const item = itemMap.get(href);
                     if (!item) return null;
                     const Icon = item.icon;
@@ -110,15 +115,17 @@ export function Sidebar({
   collapsed,
   mobileOpen,
   onCloseMobile,
+  permissions,
 }: {
   collapsed: boolean;
   mobileOpen: boolean;
   onCloseMobile: () => void;
+  permissions: string[];
 }) {
   return (
     <>
       <aside className={cn("fixed inset-y-0 left-0 hidden h-screen border-r border-[#0e235c] bg-[#071a49] transition-[width] duration-300 lg:block", collapsed ? "w-[96px]" : "w-[300px]")}>
-        <SidebarContent collapsed={collapsed} />
+        <SidebarContent collapsed={collapsed} permissions={permissions} />
       </aside>
       {mobileOpen ? (
         <div className="fixed inset-0 z-50 bg-slate-950/40 lg:hidden">
@@ -131,7 +138,7 @@ export function Sidebar({
               >
                 <X size={18} />
               </button>
-              <SidebarContent collapsed={false} />
+              <SidebarContent collapsed={false} permissions={permissions} />
             </div>
           </div>
         </div>

@@ -26,6 +26,7 @@ export type NavItem = {
   label: string;
   icon: typeof LayoutDashboard;
   badge?: string;
+  permission?: string;
 };
 
 export type NavSection = {
@@ -36,10 +37,10 @@ export type NavSection = {
 };
 
 export const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/employees", label: "Karyawan", icon: Users },
-  { href: "/outlets", label: "Outlet", icon: Store },
-  { href: "/roles", label: "Role & Akses", icon: Shield },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
+  { href: "/employees", label: "Karyawan", icon: Users, permission: "employees.view" },
+  { href: "/outlets", label: "Outlet", icon: Store, permission: "outlets.view" },
+  { href: "/roles", label: "Role & Akses", icon: Shield, permission: "settings.roles" },
   { href: "/ui/tables", label: "Tables", icon: Table },
   { href: "/ui/forms", label: "Forms", icon: FileText },
   { href: "/ui/cards", label: "Cards", icon: CreditCard },
@@ -53,7 +54,7 @@ export const navItems: NavItem[] = [
   { href: "/pages/invoice", label: "Invoice", icon: FileText },
   { href: "/pages/pricing", label: "Pricing", icon: BarChart3 },
   { href: "/profile", label: "Profile", icon: User },
-  { href: "/settings", label: "Pengaturan", icon: Settings },
+  { href: "/settings", label: "Pengaturan", icon: Settings, permission: "settings.manage" },
   { href: "/login", label: "Login", icon: LogIn },
   { href: "/register", label: "Register", icon: UserPlus },
   { href: "/forgot-password", label: "Lupa Password", icon: KeyRound },
