@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getProductRecommendations } from "@/lib/ai/provider";
+import { scanMenuByGemini } from "@/lib/ai/gemini";
 import type { ProductDraft } from "@/lib/ai/types";
 
 // Get recommendations based on current business type
@@ -87,4 +88,35 @@ export async function createRecommendedProducts(drafts: ProductDraft[]) {
   }
 
   return { success: true };
+}
+
+export async function scanMenuImage(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return { error: "Unauthorized" };
+
+  const file = formData.get("file") as File | null;
+  if (!file) return { error: "No file provided" };
+
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+  if (!allowedTypes.includes(file.type)) {
+    return { error: "Format file tidak didukung. Gunakan JPG, PNG, atau WEBP." };
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    return { error: "Ukuran file maksimal 5MB" };
+  }
+
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+  const base64 = buffer.toString("base64");
+
+  try {
+    const result = await scanMenuByGemini(base64, file.type);
+    if (!result.success) {
+      return { error: result.error };
+    }
+    return { success: true, drafts: result.data };
+  } catch (err: any) {
+    return { error: err.message ?? "Gagal memproses gambar" };
+  }
 }
