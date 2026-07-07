@@ -26,8 +26,7 @@ export default function RegisterPage() {
       setError(result.error);
       setLoading(false);
     } else {
-      // Changed to redirect to /login after registration per user request
-      router.push("/login");
+      router.push("/onboarding/business");
     }
   }
 
