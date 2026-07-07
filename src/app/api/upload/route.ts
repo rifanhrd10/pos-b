@@ -1,41 +1,39 @@
-import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import fs from "fs";
 import path from "path";
 
-export const dynamic = "force-dynamic";
+export async function POST(req: Request) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-export async function POST(request: NextRequest) {
-  const formData = await request.formData();
-  const file = formData.get("file") as File | null;
+  try {
+    const formData = await req.formData();
+    const file = formData.get("file") as File;
+    if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
 
-  if (!file) {
-    return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    const maxMB = 5;
+    if (file.size > maxMB * 1024 * 1024) return NextResponse.json({ error: `File too large (max ${maxMB}MB)` }, { status: 400 });
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) return NextResponse.json({ error: "Only JPG, PNG, WEBP allowed" }, { status: 400 });
+
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+    const uniqueName = `${Date.now()}-${safeName}`;
+    const uploadDir = path.join(process.cwd(), "public/uploads");
+
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const filepath = path.join(uploadDir, uniqueName);
+    fs.writeFileSync(filepath, buffer);
+
+    return NextResponse.json({ success: true, url: `/uploads/${uniqueName}` });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
-
-  // Validate file type
-  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
-  if (!allowedTypes.includes(file.type)) {
-    return NextResponse.json({ error: "File type not allowed" }, { status: 400 });
-  }
-
-  // Validate file size (max 2MB)
-  if (file.size > 2 * 1024 * 1024) {
-    return NextResponse.json({ error: "File too large (max 2MB)" }, { status: 400 });
-  }
-
-  // Generate unique filename
-  const ext = file.name.split(".").pop();
-  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-  // Ensure upload directory exists
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadDir, { recursive: true });
-
-  // Write file
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-  await writeFile(path.join(uploadDir, filename), buffer);
-
-  const url = `/uploads/${filename}`;
-  return NextResponse.json({ url });
 }

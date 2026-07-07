@@ -56,6 +56,8 @@ export function ProductForm({ mode, businessId, product }: ProductFormProps) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
+  const [imageUrl, setImageUrl] = useState(product?.image ?? "");
+  const [isUploading, setIsUploading] = useState(false);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [categoryId, setCategoryId] = useState(product?.categoryId ?? "");
   const [trackStock, setTrackStock] = useState(product?.trackStock ?? false);
@@ -215,8 +217,35 @@ export function ProductForm({ mode, businessId, product }: ProductFormProps) {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Image URL</label>
-              <Input name="image" placeholder="https://..." defaultValue={product?.image ?? ""} />
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Gambar Produk</label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={isUploading}
+                className="mb-2 block w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
+                onChange={async (event) => {
+                  const picked = event.target.files?.[0];
+                  if (!picked) return;
+                  setIsUploading(true);
+                  try {
+                    const fd = new FormData();
+                    fd.append("file", picked);
+                    const res = await fetch("/api/upload", { method: "POST", body: fd });
+                    const json = (await res.json()) as { success?: boolean; url?: string; error?: string };
+                    if (json.url) {
+                      setImageUrl(json.url);
+                    } else {
+                      setError(json.error ?? "Upload gagal");
+                    }
+                  } catch (err) {
+                    setError(getErrorMessage(err));
+                  } finally {
+                    setIsUploading(false);
+                  }
+                }}
+              />
+              {isUploading && <p className="mb-1 text-xs text-slate-500">Uploading...</p>}
+              <Input name="image" placeholder="https://..." value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} />
             </div>
           </div>
 
