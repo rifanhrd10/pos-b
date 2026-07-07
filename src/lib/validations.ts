@@ -97,3 +97,35 @@ export const businessSetupSchemaV2 = z.object({
   province: z.string().optional(),
   npwp: z.string().optional(),
 });
+
+export const categorySchema = z.object({
+  name: z.string().min(2, "Nama kategori minimal 2 karakter"),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+});
+
+export const variantSchema = z.object({
+  name: z.string().min(1, "Nama varian wajib diisi"),
+  priceAdjustment: z.coerce.number().min(0, "Harga tambahan tidak valid"),
+  stock: z.coerce.number().min(0, "Stok tidak valid").optional(),
+});
+
+export const toppingSchema = z.object({
+  name: z.string().min(1, "Nama topping wajib diisi"),
+  price: z.coerce.number().min(0, "Harga topping tidak valid"),
+});
+
+export const productSchema = z.object({
+  name: z.string().min(2, "Nama produk minimal 2 karakter"),
+  description: z.string().optional(),
+  categoryId: z.string().optional(),
+  sku: z.string().optional(),
+  barcode: z.string().optional(),
+  basePrice: z.coerce.number().min(0, "Harga jual tidak valid"),
+  costPrice: z.coerce.number().min(0, "Harga modal tidak valid").optional(),
+  taxRate: z.coerce.number().min(0).max(100).optional(),
+  image: z.string().optional(),
+  trackStock: z.boolean().optional(),
+  variants: z.array(variantSchema).optional(),
+  toppings: z.array(toppingSchema).optional(),
+});
