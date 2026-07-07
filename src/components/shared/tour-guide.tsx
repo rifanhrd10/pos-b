@@ -16,7 +16,7 @@ export function TourGuide({ hasCompletedTour }: TourGuideProps) {
     const timeout = setTimeout(() => {
       const driverObj = driver({
         showProgress: true,
-        progressText: "{{cur}} dari {{total}}",
+        progressText: "{{current}} dari {{total}}",
         nextBtnText: "Selanjutnya →",
         prevBtnText: "← Kembali",
         doneBtnText: "Selesai",
