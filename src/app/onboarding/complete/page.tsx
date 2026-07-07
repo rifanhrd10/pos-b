@@ -1,105 +1,138 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Sparkles, Store, Users, Boxes } from "lucide-react";
+import { completeOnboarding, seedDemoData } from "@/actions/onboarding";
 import { Button } from "@/components/ui/button";
-import { seedDemoData } from "@/actions/onboarding";
-import { getErrorMessage } from "@/lib/errors";
+import { Building2, Store, Clock, CreditCard, PartyPopper } from "lucide-react";
+
+type Summary = {
+  businessName: string;
+  businessType: string;
+  planName: string;
+  trialEndsAt: string;
+  outletCount: number;
+  outletNames: string[];
+  openTime: string;
+  closeTime: string;
+  hasShift: boolean;
+  shiftCount: number;
+};
 
 export default function CompletePage() {
   const router = useRouter();
+  const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [seedLoading, setSeedLoading] = useState(false);
 
-  async function handleSeedDemo() {
+  useEffect(() => {
+    fetch("/api/onboarding/summary")
+      .then((r) => r.json())
+      .then(setSummary);
+  }, []);
+
+  async function handleComplete() {
     setLoading(true);
-    setError("");
-
-    try {
-      const result = await seedDemoData();
-      if (result?.error) {
-        setError(getErrorMessage(result.error));
-        return;
-      }
-      router.push("/dashboard");
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
+    await completeOnboarding();
+    router.push("/dashboard");
   }
 
-  function handleSkip() {
+  async function handleSeedAndComplete() {
+    setSeedLoading(true);
+    await seedDemoData();
+    await completeOnboarding();
     router.push("/dashboard");
   }
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full flex flex-col items-center justify-center text-center mx-auto">
-      {/* Success Icon */}
-      <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-emerald-400 to-emerald-500 text-white shadow-[0_20px_40px_-15px_rgba(16,185,129,0.5)] ring-4 ring-emerald-50">
-        <CheckCircle2 className="h-12 w-12" />
-        <div className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white text-emerald-500 shadow-sm border border-emerald-100">
-          <Sparkles className="h-4 w-4" />
+    <div className="space-y-8">
+      <div className="space-y-3">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100">
+          <PartyPopper className="h-7 w-7 text-emerald-600" />
         </div>
+        <h1 className="text-2xl font-bold text-slate-900 font-heading">Hampir selesai!</h1>
+        <p className="text-slate-500">Cek ringkasan setup bisnis Anda sebelum masuk ke dashboard.</p>
       </div>
 
-      <h1 className="font-heading text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
-        Toko kamu siap digunakan!
-      </h1>
-      <p className="mt-4 text-lg text-slate-500 max-w-lg">
-        Langkah terakhir: Mau lanjut ke dashboard kosong, atau isi dengan <strong className="text-slate-800">data demo</strong> agar laporan langsung terlihat hidup?
+      {/* Summary */}
+      {summary && (
+        <div className="space-y-3">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <Building2 className="h-5 w-5 text-cyan-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs text-slate-400 uppercase tracking-wide">Bisnis</p>
+                <p className="font-semibold text-slate-900">{summary.businessName}</p>
+                <p className="text-sm text-slate-500">{summary.businessType}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <CreditCard className="h-5 w-5 text-cyan-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs text-slate-400 uppercase tracking-wide">Plan</p>
+                <p className="font-semibold text-slate-900">
+                  {summary.planName}{" "}
+                  <span className="text-xs font-normal text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                    Trial Pro s.d. {summary.trialEndsAt}
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Store className="h-5 w-5 text-cyan-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs text-slate-400 uppercase tracking-wide">Outlet</p>
+                <p className="font-semibold text-slate-900">{summary.outletCount} outlet</p>
+                <p className="text-sm text-slate-500">{summary.outletNames.join(", ")}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Clock className="h-5 w-5 text-cyan-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs text-slate-400 uppercase tracking-wide">Operasional</p>
+                <p className="font-semibold text-slate-900">
+                  {summary.openTime} – {summary.closeTime}
+                </p>
+                <p className="text-sm text-slate-500">
+                  {summary.hasShift
+                    ? `${summary.shiftCount} shift karyawan`
+                    : "Tanpa shift, tutup kas 1x/hari"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!summary && (
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-16 rounded-2xl bg-slate-100 animate-pulse" />
+          ))}
+        </div>
+      )}
+
+      <div className="space-y-3">
+        <Button
+          onClick={handleComplete}
+          disabled={loading || seedLoading}
+          className="w-full bg-cyan-500 hover:bg-cyan-600 h-12 text-base font-semibold"
+        >
+          {loading ? "Memuat dashboard..." : "Mulai Gunakan Bayaro →"}
+        </Button>
+        <Button
+          variant="outline"
+          onClick={handleSeedAndComplete}
+          disabled={loading || seedLoading}
+          className="w-full h-11 text-sm text-slate-500"
+        >
+          {seedLoading ? "Menambahkan data..." : "Isi dengan data contoh (untuk mencoba fitur)"}
+        </Button>
+      </div>
+
+      <p className="text-xs text-slate-400 text-center">
+        Semua pengaturan dapat diubah kapan saja melalui halaman Pengaturan.
       </p>
-
-      {/* Demo Data Option Card */}
-      <div className="mt-10 w-full max-w-[600px] rounded-[32px] border border-slate-200/80 bg-white p-2 shadow-xl shadow-slate-200/30">
-        <div className="rounded-[24px] bg-slate-50/80 p-6 sm:p-8">
-          <div className="grid gap-6 sm:grid-cols-3 text-left">
-            <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
-                <Users className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900">3 Akun</p>
-                <p className="text-xs text-slate-500">Manajer & Kasir</p>
-              </div>
-            </div>
-            <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-100 text-cyan-600">
-                <Store className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900">2 Outlet</p>
-                <p className="text-xs text-slate-500">Cabang Aktif</p>
-              </div>
-            </div>
-            <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
-                <Boxes className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900">1 Outlet</p>
-                <p className="text-xs text-slate-500">Cabang Demo</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {error && (
-          <div className="mx-6 mb-6 mt-4 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-600 ring-1 ring-rose-200 text-left">
-            {error}
-          </div>
-        )}
-
-        <div className="flex flex-col gap-3 p-6 sm:p-8 pt-6">
-          <Button onClick={handleSeedDemo} isLoading={loading} className="h-14 w-full text-base font-semibold shadow-[0_8px_20px_0_rgb(16,185,129,0.3)] bg-emerald-500 hover:bg-emerald-600 hover:shadow-[0_12px_25px_rgba(16,185,129,0.25)] border-0 text-white transition-all hover:-translate-y-[2px] rounded-2xl">
-            {loading ? "Menyiapkan Demo..." : "Ya, Isi dengan Data Demo"}
-          </Button>
-          <Button variant="outline" onClick={handleSkip} disabled={loading} className="h-14 w-full text-base font-medium border-slate-200 hover:bg-slate-50 text-slate-600 rounded-2xl">
-            Mulai dari Nol Saja
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }
