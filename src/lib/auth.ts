@@ -41,16 +41,50 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
       }
+
+      if (trigger === "signIn" && user) {
+        const [business, dbUser] = await Promise.all([
+          prisma.business.findFirst({
+            where: { ownerId: user.id as string },
+            select: { onboardingStep: true, onboardingDone: true },
+            orderBy: { createdAt: "desc" },
+          }),
+          prisma.user.findUnique({
+            where: { id: user.id as string },
+            select: { hasCompletedTour: true },
+          }),
+        ]);
+
+        token.onboardingStep = business?.onboardingStep ?? 1;
+        token.onboardingDone = business?.onboardingDone ?? false;
+        token.hasCompletedTour = dbUser?.hasCompletedTour ?? false;
+      }
+
+      if (trigger === "update" && session) {
+        if (session.onboardingStep !== undefined)
+          token.onboardingStep = session.onboardingStep;
+        if (session.onboardingDone !== undefined)
+          token.onboardingDone = session.onboardingDone;
+        if (session.hasCompletedTour !== undefined)
+          token.hasCompletedTour = session.hasCompletedTour;
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (token?.id) {
         session.user.id = token.id as string;
       }
+      if (token.onboardingStep !== undefined)
+        session.user.onboardingStep = token.onboardingStep as number;
+      if (token.onboardingDone !== undefined)
+        session.user.onboardingDone = token.onboardingDone as boolean;
+      if (token.hasCompletedTour !== undefined)
+        session.user.hasCompletedTour = token.hasCompletedTour as boolean;
       return session;
     },
   },
