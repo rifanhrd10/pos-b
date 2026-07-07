@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock3, MapPin, Phone, Store, Sparkles } from "lucide-react";
+import { Clock3, MapPin, Phone, Store, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LogoUpload } from "@/components/shared/logo-upload";
-import { createFirstOutlet } from "@/actions/onboarding";
+import { createOutlets } from "@/actions/onboarding";
 
 export default function OutletPage() {
   const router = useRouter();
@@ -22,10 +22,10 @@ export default function OutletPage() {
     const formData = new FormData(e.currentTarget);
     if (logo) formData.set("logo", logo);
 
-    const result = await createFirstOutlet(formData);
+    const result = await createOutlets(formData);
 
-    if (result?.error) {
-      setError(result.error);
+    if (result?.err) {
+      setError(result.err);
       setLoading(false);
     } else {
       router.push("/onboarding/complete");
@@ -33,91 +33,97 @@ export default function OutletPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <div className="inline-flex items-center gap-2 rounded-full bg-bayaro-soft px-4 py-2 text-sm font-medium text-bayaro-blue">
-          <Sparkles className="h-4 w-4" />
-          Langkah 2 dari 3
-        </div>
-        <h1 className="mt-4 font-heading text-4xl font-bold tracking-tight text-slate-900">
-          Buat outlet pertama kamu
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+      <div className="mb-6">
+        <h1 className="font-heading text-3xl font-bold tracking-tight text-slate-900">
+          Buat Outlet Pertama
         </h1>
-        <p className="mt-3 max-w-xl text-base leading-relaxed text-slate-500">
-          Ini bisa jadi cabang pusat atau satu-satunya outlet yang kamu miliki sekarang. Nanti kamu bisa tambah cabang lagi kapan saja.
+        <p className="mt-1.5 text-base text-slate-500 max-w-xl">
+          Ini adalah cabang pertama Anda. Dapat ditambah lagi nanti.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6 rounded-[28px] bg-white p-6 shadow-lg shadow-slate-200/50 ring-1 ring-slate-100 md:p-8">
-        <div className="flex flex-col items-center gap-3 rounded-[24px] border border-dashed border-slate-200 bg-slate-50 px-6 py-8 text-center">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        
+        {/* Logo Upload Section - Compact */}
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
           <LogoUpload value={logo} onChange={setLogo} size="sm" />
-          <div>
-            <p className="font-semibold text-slate-900">Upload logo outlet</p>
-            <p className="mt-1 text-sm text-slate-500">Boleh sama dengan logo bisnis, boleh beda.</p>
+          <div className="mt-2 sm:mt-0">
+            <h3 className="text-sm font-semibold text-slate-900">Logo Outlet (Opsional)</h3>
+            <p className="mt-1 text-xs text-slate-500 leading-relaxed max-w-xs">
+              Gunakan logo yang sama dengan bisnis, atau buat khusus outlet.
+            </p>
           </div>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
-          <div className="space-y-2 md:col-span-2">
-            <label className="text-sm font-semibold text-slate-700">Nama outlet</label>
+        <div className="border-t border-slate-100" />
+
+        {/* Compact Form Grid */}
+        <div className="grid gap-x-6 gap-y-4 md:grid-cols-2">
+          <div className="space-y-1.5 md:col-span-2 group/input">
+            <label className="text-sm font-bold text-slate-900">Nama Outlet</label>
             <div className="relative">
-              <Store className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <Input name="name" placeholder="Contoh: Cabang Pusat" className="h-12 bg-slate-50 pl-11 text-base" required />
+              <Store className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within/input:text-bayaro-blue" />
+              <Input name="name" placeholder="Contoh: Cabang Pusat Sudirman" className="h-11 border-slate-200 bg-white pl-10 text-sm shadow-sm transition-all focus:border-bayaro-blue focus:ring-4 focus:ring-bayaro-blue/10 hover:border-slate-300" required />
             </div>
           </div>
 
-          <div className="space-y-2 md:col-span-2">
-            <label className="text-sm font-semibold text-slate-700">Alamat outlet</label>
+          <div className="space-y-1.5 md:col-span-2 group/input">
+            <label className="text-sm font-bold text-slate-900">Alamat Outlet</label>
             <div className="relative">
-              <MapPin className="absolute left-4 top-4 h-4 w-4 text-slate-400" />
+              <MapPin className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400 transition-colors group-focus-within/input:text-bayaro-blue" />
               <textarea
                 name="address"
-                placeholder="Alamat lengkap outlet"
-                rows={4}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pl-11 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-bayaro-blue focus:ring-4 focus:ring-blue-100 resize-none"
+                placeholder="Alamat lengkap outlet beroperasi"
+                rows={2}
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pl-10 text-sm text-slate-900 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-bayaro-blue focus:ring-4 focus:ring-bayaro-blue/10 hover:border-slate-300 resize-none"
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">Kota</label>
-            <Input name="city" placeholder="Jakarta" className="h-12 bg-slate-50 text-base" />
+          <div className="space-y-1.5 group/input">
+            <label className="text-sm font-bold text-slate-900">Kota</label>
+            <Input name="city" placeholder="Jakarta" className="h-11 border-slate-200 bg-white text-sm shadow-sm transition-all focus:border-bayaro-blue focus:ring-4 focus:ring-bayaro-blue/10 hover:border-slate-300" />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">Nomor telepon</label>
+          <div className="space-y-1.5 group/input">
+            <label className="text-sm font-bold text-slate-900">Nomor Telepon</label>
             <div className="relative">
-              <Phone className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <Input name="phone" placeholder="08xxxxxxxxxx" type="tel" className="h-12 bg-slate-50 pl-11 text-base" />
+              <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within/input:text-bayaro-blue" />
+              <Input name="phone" placeholder="08xxxxxxxxxx" type="tel" className="h-11 border-slate-200 bg-white pl-10 text-sm shadow-sm transition-all focus:border-bayaro-blue focus:ring-4 focus:ring-bayaro-blue/10 hover:border-slate-300" />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">Jam buka</label>
+          <div className="space-y-1.5 group/input">
+            <label className="text-sm font-bold text-slate-900">Jam Buka</label>
             <div className="relative">
-              <Clock3 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <Input name="openTime" type="time" defaultValue="08:00" className="h-12 bg-slate-50 pl-11 text-base" />
+              <Clock3 className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within/input:text-bayaro-blue" />
+              <Input name="openTime" type="time" defaultValue="08:00" className="h-11 border-slate-200 bg-white pl-10 text-sm shadow-sm transition-all focus:border-bayaro-blue focus:ring-4 focus:ring-bayaro-blue/10 hover:border-slate-300" />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">Jam tutup</label>
+          <div className="space-y-1.5 group/input">
+            <label className="text-sm font-bold text-slate-900">Jam Tutup</label>
             <div className="relative">
-              <Clock3 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <Input name="closeTime" type="time" defaultValue="22:00" className="h-12 bg-slate-50 pl-11 text-base" />
+              <Clock3 className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within/input:text-bayaro-blue" />
+              <Input name="closeTime" type="time" defaultValue="22:00" className="h-11 border-slate-200 bg-white pl-10 text-sm shadow-sm transition-all focus:border-bayaro-blue focus:ring-4 focus:ring-bayaro-blue/10 hover:border-slate-300" />
             </div>
           </div>
         </div>
 
         {error && (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
-            {error}
+          <div className="flex animate-in fade-in items-start gap-3 rounded-xl border border-rose-200/50 bg-rose-50 p-3 text-sm text-rose-600 shadow-sm">
+            <p>{error}</p>
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-4 border-t border-slate-100 pt-6">
-          <p className="text-sm text-slate-500">Kalau bisnis kamu punya banyak cabang, nanti bisa tambah outlet lagi.</p>
-          <Button type="submit" isLoading={loading} className="h-12 min-w-[220px] text-base">
-            {loading ? "Menyimpan..." : "Selesaikan Setup"}
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-slate-100 pt-6 sm:flex-row">
+          <p className="text-xs text-slate-500 font-medium hidden sm:block">Hampir selesai! Tinggal selangkah lagi.</p>
+          <Button type="submit" isLoading={loading} className="group/btn relative h-12 w-full overflow-hidden rounded-xl bg-bayaro-blue text-sm text-white shadow-lg shadow-blue-500/30 transition-all hover:shadow-blue-500/40 hover:-translate-y-[1px] sm:w-auto sm:min-w-[200px]">
+            <span className="relative z-10 flex items-center justify-center gap-2 font-semibold">
+              {loading ? "Menyimpan..." : "Selesaikan Setup"}
+              {!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />}
+            </span>
           </Button>
         </div>
       </form>
