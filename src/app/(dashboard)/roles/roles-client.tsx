@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { EmptyState } from "@/components/shared/empty-state";
-import { deleteRole } from "@/actions/outlets";
+import { deleteRole } from "@/actions/roles";
 import { PERMISSIONS } from "@/lib/permissions";
 
 type Role = {

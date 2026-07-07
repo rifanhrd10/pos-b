@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createRole } from "@/actions/outlets";
+import { createRole } from "@/actions/roles";
 import { PERMISSIONS } from "@/lib/permissions";
 import type { Permission } from "@/lib/permissions";
 import { getErrorMessage } from "@/lib/errors";
