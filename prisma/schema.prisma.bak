@@ -1,0 +1,225 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// AUTH (NextAuth.js v5)
+// ============================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  password      String
+  phone         String?
+  avatar        String?
+  emailVerified    DateTime?
+  hasCompletedTour Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  accounts   Account[]
+  sessions   Session[]
+  businesses Business[]
+  employees  Employee[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================
+// BUSINESS & OUTLET
+// ============================================================
+
+enum BusinessType {
+  COFFEE_SHOP
+  RESTAURANT
+  VAPE_STORE
+  BARBERSHOP
+  RETAIL
+  FNB
+  LAUNDRY
+  OTHER
+}
+
+model Business {
+  id          String       @id @default(cuid())
+  ownerId     String
+  name        String
+  type        BusinessType
+  logo        String?
+  phone       String?
+  email       String?
+  address     String?
+  city        String?
+  province    String?
+  taxRate     Float        @default(0)
+  serviceRate Float        @default(0)
+  currency    String       @default("IDR")
+  // Operational
+  npwp           String?
+  openTime       String?      @default("08:00")
+  closeTime      String?      @default("22:00")
+  hasMultiOutlet Boolean      @default(false)
+  hasShift       Boolean      @default(false)
+  // Onboarding tracking
+  onboardingStep Int          @default(1)
+  onboardingDone Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  owner      User       @relation(fields: [ownerId], references: [id])
+  outlets    Outlet[]
+  employees  Employee[]
+  roles      Role[]
+  subscription Subscription?
+  shifts       Shift[]
+}
+
+model Outlet {
+  id         String   @id @default(cuid())
+  businessId String
+  name       String
+  address    String?
+  city       String?
+  phone      String?
+  logo       String?
+  isActive   Boolean  @default(true)
+  openTime   String?
+  closeTime  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business  Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  employees EmployeeOutlet[]
+}
+
+// ============================================================
+// RBAC + EMPLOYEE
+// ============================================================
+
+model Role {
+  id          String   @id @default(cuid())
+  businessId  String
+  name        String
+  description String?
+  permissions String[]
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business  Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  employees Employee[]
+
+  @@unique([businessId, name])
+}
+
+model Employee {
+  id         String   @id @default(cuid())
+  businessId String
+  userId     String?
+  roleId     String
+  name       String
+  email      String?
+  phone      String?
+  pin        String?
+  isActive   Boolean  @default(true)
+  startDate  DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User?            @relation(fields: [userId], references: [id])
+  role     Role             @relation(fields: [roleId], references: [id])
+  outlets  EmployeeOutlet[]
+}
+
+// Many-to-many: Employee can access multiple outlets
+model EmployeeOutlet {
+  id         String @id @default(cuid())
+  employeeId String
+  outletId   String
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  outlet   Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, outletId])
+}
+
+// ============================================================
+// SUBSCRIPTION & PLAN
+// ============================================================
+
+model Plan {
+  id            String         @id @default(cuid())
+  name          String         @unique // "starter" | "pro" | "enterprise"
+  displayName   String         // "Starter" | "Pro" | "Enterprise"
+  maxOutlets    Int            // 1 | 10 | -1 (unlimited)
+  maxEmployees  Int            // 5 | 50 | -1 (unlimited)
+  features      String[]       // ["shift", "advanced_reports", "export", "api"]
+  price         Int            // Rupiah per bulan, 0 for starter
+  subscriptions Subscription[]
+  createdAt     DateTime       @default(now())
+}
+
+model Subscription {
+  id               String    @id @default(cuid())
+  businessId       String    @unique
+  business         Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  planId           String
+  plan             Plan      @relation(fields: [planId], references: [id])
+  status           String    // "trial" | "active" | "expired" | "cancelled"
+  trialEndsAt      DateTime?
+  currentPeriodEnd DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Shift {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name       String   // "Shift Pagi"
+  startTime  String   // "08:00"
+  endTime    String   // "15:00"
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
