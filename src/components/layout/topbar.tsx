@@ -1,16 +1,45 @@
+"use client";
+
 import { PanelLeftClose, PanelLeftOpen, LogOut } from "lucide-react";
+import { OutletSwitcher } from "@/components/shared/outlet-switcher";
+import { switchActiveOutlet } from "@/actions/outlets";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+type OutletOption = {
+  id: string;
+  name: string;
+};
 
 export function Topbar({
   userName,
   outletName,
   collapsed,
+  outlets,
+  activeOutletId,
   onToggleSidebar,
 }: {
   userName: string;
   outletName: string;
   collapsed: boolean;
+  outlets: OutletOption[];
+  activeOutletId: string | null;
   onToggleSidebar: () => void;
 }) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+
+  const handleSwitch = async (id: string | null) => {
+    if (pending) return;
+    setPending(true);
+    try {
+      await switchActiveOutlet(id);
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
+  };
+
   const today = new Intl.DateTimeFormat("id-ID", {
     weekday: "long",
     day: "2-digit",
@@ -35,6 +64,11 @@ export function Topbar({
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3 xl:justify-end">
+        <OutletSwitcher
+          outlets={outlets}
+          activeOutletId={activeOutletId}
+          onSwitch={handleSwitch}
+        />
         <div className="hidden rounded-2xl border border-slate-200 bg-white px-4 py-2 text-right lg:block">
           <p className="text-xs text-slate-500">Hari ini</p>
           <p className="text-sm font-semibold text-slate-900">{today}</p>

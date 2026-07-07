@@ -9,7 +9,7 @@ type OutletOption = {
   id: string;
   name: string;
   logo?: string | null;
-  isActive: boolean;
+  isActive?: boolean;
 };
 
 export function OutletSwitcher({

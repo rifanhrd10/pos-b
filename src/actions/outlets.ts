@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { outletSchema } from "@/lib/validations";
+import { setActiveOutletCookie } from "@/lib/outlet-context";
 
 // ============================================================
 // OUTLETS
@@ -114,6 +115,11 @@ export async function toggleOutletStatus(id: string) {
 
 export async function deleteOutlet(id: string) {
   await prisma.outlet.delete({ where: { id } });
+  return { success: true };
+}
+
+export async function switchActiveOutlet(outletId: string | null) {
+  await setActiveOutletCookie(outletId);
   return { success: true };
 }
 

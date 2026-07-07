@@ -4,6 +4,11 @@ import { useState } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 
+type OutletOption = {
+  id: string;
+  name: string;
+};
+
 function DashboardFooter() {
   return (
     <footer className="border-t border-slate-200 bg-white px-6 py-4">
@@ -19,11 +24,15 @@ export function DashboardShell({
   userName,
   outletName,
   permissions,
+  outlets,
+  activeOutletId,
   children,
 }: {
   userName: string;
   outletName: string;
   permissions: string[];
+  outlets: OutletOption[];
+  activeOutletId: string | null;
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -43,6 +52,8 @@ export function DashboardShell({
             userName={userName}
             outletName={outletName}
             collapsed={collapsed}
+            outlets={outlets}
+            activeOutletId={activeOutletId}
             onToggleSidebar={() => {
               if (window.innerWidth >= 1024) {
                 setCollapsed((value) => !value);
