@@ -2,131 +2,217 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock3, MapPin, Phone, Store, ArrowRight } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { LogoUpload } from "@/components/shared/logo-upload";
 import { createOutlets } from "@/actions/onboarding";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Store, Plus, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type OutletForm = {
+  name: string;
+  address: string;
+  city: string;
+  phone: string;
+};
+
+const emptyOutlet = (): OutletForm => ({ name: "", address: "", city: "", phone: "" });
 
 export default function OutletPage() {
   const router = useRouter();
-  const [logo, setLogo] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [hasMultiOutlet, setHasMultiOutlet] = useState<boolean | null>(null);
+  const [outlets, setOutlets] = useState<OutletForm[]>([emptyOutlet()]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError(null);
+  function updateOutlet(index: number, field: keyof OutletForm, value: string) {
+    setOutlets((prev) => prev.map((o, i) => (i === index ? { ...o, [field]: value } : o)));
+  }
+
+  function addOutlet() {
+    setOutlets((prev) => [...prev, emptyOutlet()]);
+  }
+
+  function removeOutlet(index: number) {
+    if (outlets.length <= 1) return;
+    setOutlets((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function handleSubmit() {
     setLoading(true);
+    setError(null);
 
-    const formData = new FormData(e.currentTarget);
-    if (logo) formData.set("logo", logo);
+    const formData = new FormData();
+    formData.append("hasMultiOutlet", hasMultiOutlet ? "true" : "false");
+
+    if (hasMultiOutlet) {
+      outlets.forEach((outlet, i) => {
+        formData.append(`outlets[${i}][name]`, outlet.name);
+        if (outlet.address) formData.append(`outlets[${i}][address]`, outlet.address);
+        if (outlet.city) formData.append(`outlets[${i}][city]`, outlet.city);
+        if (outlet.phone) formData.append(`outlets[${i}][phone]`, outlet.phone);
+      });
+    }
 
     const result = await createOutlets(formData);
-
-    if (result?.error) {
+    if (result.error) {
       setError(result.error);
       setLoading(false);
-    } else {
-      router.push("/onboarding/complete");
+      return;
     }
+    router.push("/onboarding/operations");
   }
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
-      <div className="mb-6">
-        <h1 className="font-heading text-3xl font-bold tracking-tight text-slate-900">
-          Buat Outlet Pertama
-        </h1>
-        <p className="mt-1.5 text-base text-slate-500 max-w-xl">
-          Ini adalah cabang pertama Anda. Dapat ditambah lagi nanti.
-        </p>
+    <div className="space-y-8">
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold text-slate-900 font-heading">Setup Outlet</h1>
+        <p className="text-slate-500">Tentukan lokasi operasional bisnis Anda.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        
-        {/* Logo Upload Section - Compact */}
-        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-          <LogoUpload value={logo} onChange={setLogo} size="sm" />
-          <div className="mt-2 sm:mt-0">
-            <h3 className="text-sm font-semibold text-slate-900">Logo Outlet (Opsional)</h3>
-            <p className="mt-1 text-xs text-slate-500 leading-relaxed max-w-xs">
-              Gunakan logo yang sama dengan bisnis, atau buat khusus outlet.
+      {/* Question: punya cabang? */}
+      {hasMultiOutlet === null && (
+        <div className="space-y-4">
+          <p className="font-medium text-slate-800">Apakah bisnis Anda memiliki lebih dari 1 lokasi / cabang?</p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setHasMultiOutlet(false)}
+              className="flex flex-col items-center gap-3 rounded-2xl border-2 border-slate-200 p-6 text-center hover:border-cyan-400 hover:bg-cyan-50 transition-all"
+            >
+              <Store className="h-8 w-8 text-slate-400" />
+              <div>
+                <p className="font-semibold text-slate-900">Tidak</p>
+                <p className="text-xs text-slate-500 mt-0.5">Hanya 1 toko saja</p>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setHasMultiOutlet(true)}
+              className="flex flex-col items-center gap-3 rounded-2xl border-2 border-slate-200 p-6 text-center hover:border-cyan-400 hover:bg-cyan-50 transition-all"
+            >
+              <div className="flex gap-1">
+                <Store className="h-7 w-7 text-slate-400" />
+                <Store className="h-7 w-7 text-slate-400" />
+              </div>
+              <div>
+                <p className="font-semibold text-slate-900">Ya</p>
+                <p className="text-xs text-slate-500 mt-0.5">Punya 2 atau lebih lokasi</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tidak punya cabang → konfirmasi auto-create */}
+      {hasMultiOutlet === false && (
+        <div className="space-y-6">
+          <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5 space-y-2">
+            <div className="flex items-center gap-2 text-slate-700">
+              <Store className="h-5 w-5 text-cyan-500" />
+              <span className="font-semibold">Outlet Utama</span>
+            </div>
+            <p className="text-sm text-slate-500">
+              Outlet akan dibuat otomatis menggunakan nama dan alamat bisnis Anda.
+              Anda dapat mengubah detail outlet kapan saja melalui halaman Pengaturan.
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => setHasMultiOutlet(null)}
+            className="text-sm text-slate-400 hover:text-slate-600 underline"
+          >
+            Ubah pilihan
+          </button>
         </div>
+      )}
 
-        <div className="border-t border-slate-100" />
-
-        {/* Compact Form Grid */}
-        <div className="grid gap-x-6 gap-y-4 md:grid-cols-2">
-          <div className="space-y-1.5 md:col-span-2 group/input">
-            <label className="text-sm font-bold text-slate-900">Nama Outlet</label>
-            <div className="relative">
-              <Store className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within/input:text-bayaro-blue" />
-              <Input name="name" placeholder="Contoh: Cabang Pusat Sudirman" className="h-11 border-slate-200 bg-white pl-10 text-sm shadow-sm transition-all focus:border-bayaro-blue focus:ring-4 focus:ring-bayaro-blue/10 hover:border-slate-300" required />
+      {/* Punya cabang → form multi-outlet */}
+      {hasMultiOutlet === true && (
+        <div className="space-y-5">
+          {outlets.map((outlet, index) => (
+            <div key={index} className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-slate-900">Outlet {index + 1}</h3>
+                {outlets.length > 1 && (
+                  <button type="button" onClick={() => removeOutlet(index)} className="text-slate-400 hover:text-red-500">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">Nama Outlet *</label>
+                  <Input
+                    placeholder="Contoh: Cabang Pusat"
+                    value={outlet.name}
+                    onChange={(e) => updateOutlet(index, "name", e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Kota</label>
+                    <Input
+                      placeholder="Jakarta"
+                      value={outlet.city}
+                      onChange={(e) => updateOutlet(index, "city", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Telepon</label>
+                    <Input
+                      placeholder="021-xxxxxxxx"
+                      value={outlet.phone}
+                      onChange={(e) => updateOutlet(index, "phone", e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">Alamat</label>
+                  <Input
+                    placeholder="Jl. Contoh No. 1"
+                    value={outlet.address}
+                    onChange={(e) => updateOutlet(index, "address", e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+          ))}
 
-          <div className="space-y-1.5 md:col-span-2 group/input">
-            <label className="text-sm font-bold text-slate-900">Alamat Outlet</label>
-            <div className="relative">
-              <MapPin className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400 transition-colors group-focus-within/input:text-bayaro-blue" />
-              <textarea
-                name="address"
-                placeholder="Alamat lengkap outlet beroperasi"
-                rows={2}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pl-10 text-sm text-slate-900 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-bayaro-blue focus:ring-4 focus:ring-bayaro-blue/10 hover:border-slate-300 resize-none"
-              />
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={addOutlet}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 p-4 text-sm font-medium text-slate-500 hover:border-cyan-400 hover:text-cyan-600 transition-all"
+          >
+            <Plus className="h-4 w-4" />
+            Tambah Outlet Lagi
+          </button>
 
-          <div className="space-y-1.5 group/input">
-            <label className="text-sm font-bold text-slate-900">Kota</label>
-            <Input name="city" placeholder="Jakarta" className="h-11 border-slate-200 bg-white text-sm shadow-sm transition-all focus:border-bayaro-blue focus:ring-4 focus:ring-bayaro-blue/10 hover:border-slate-300" />
-          </div>
-
-          <div className="space-y-1.5 group/input">
-            <label className="text-sm font-bold text-slate-900">Nomor Telepon</label>
-            <div className="relative">
-              <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within/input:text-bayaro-blue" />
-              <Input name="phone" placeholder="08xxxxxxxxxx" type="tel" className="h-11 border-slate-200 bg-white pl-10 text-sm shadow-sm transition-all focus:border-bayaro-blue focus:ring-4 focus:ring-bayaro-blue/10 hover:border-slate-300" />
-            </div>
-          </div>
-
-          <div className="space-y-1.5 group/input">
-            <label className="text-sm font-bold text-slate-900">Jam Buka</label>
-            <div className="relative">
-              <Clock3 className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within/input:text-bayaro-blue" />
-              <Input name="openTime" type="time" defaultValue="08:00" className="h-11 border-slate-200 bg-white pl-10 text-sm shadow-sm transition-all focus:border-bayaro-blue focus:ring-4 focus:ring-bayaro-blue/10 hover:border-slate-300" />
-            </div>
-          </div>
-
-          <div className="space-y-1.5 group/input">
-            <label className="text-sm font-bold text-slate-900">Jam Tutup</label>
-            <div className="relative">
-              <Clock3 className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within/input:text-bayaro-blue" />
-              <Input name="closeTime" type="time" defaultValue="22:00" className="h-11 border-slate-200 bg-white pl-10 text-sm shadow-sm transition-all focus:border-bayaro-blue focus:ring-4 focus:ring-bayaro-blue/10 hover:border-slate-300" />
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={() => setHasMultiOutlet(null)}
+            className="text-sm text-slate-400 hover:text-slate-600 underline"
+          >
+            Ubah pilihan
+          </button>
         </div>
+      )}
 
-        {error && (
-          <div className="flex animate-in fade-in items-start gap-3 rounded-xl border border-rose-200/50 bg-rose-50 p-3 text-sm text-rose-600 shadow-sm">
-            <p>{error}</p>
-          </div>
-        )}
+      {error && <p className="text-sm text-red-500">{error}</p>}
 
-        <div className="flex flex-col items-center justify-between gap-4 border-t border-slate-100 pt-6 sm:flex-row">
-          <p className="text-xs text-slate-500 font-medium hidden sm:block">Hampir selesai! Tinggal selangkah lagi.</p>
-          <Button type="submit" isLoading={loading} className="group/btn relative h-12 w-full overflow-hidden rounded-xl bg-bayaro-blue text-sm text-white shadow-lg shadow-blue-500/30 transition-all hover:shadow-blue-500/40 hover:-translate-y-[1px] sm:w-auto sm:min-w-[200px]">
-            <span className="relative z-10 flex items-center justify-center gap-2 font-semibold">
-              {loading ? "Menyimpan..." : "Selesaikan Setup"}
-              {!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />}
-            </span>
+      {hasMultiOutlet !== null && (
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => router.push("/onboarding/plan")} disabled={loading}>
+            Kembali
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={loading || (hasMultiOutlet === true && outlets.every((o) => !o.name.trim()))}
+            className="flex-1 bg-cyan-500 hover:bg-cyan-600"
+          >
+            {loading ? "Menyimpan..." : "Lanjut"}
           </Button>
         </div>
-      </form>
+      )}
     </div>
   );
 }
