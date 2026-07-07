@@ -18,9 +18,10 @@ model User {
   password      String
   phone         String?
   avatar        String?
-  emailVerified DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  emailVerified    DateTime?
+  hasCompletedTour Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   accounts   Account[]
   sessions   Session[]
@@ -92,6 +93,15 @@ model Business {
   taxRate     Float        @default(0)
   serviceRate Float        @default(0)
   currency    String       @default("IDR")
+  // Operational
+  npwp           String?
+  openTime       String?      @default("08:00")
+  closeTime      String?      @default("22:00")
+  hasMultiOutlet Boolean      @default(false)
+  hasShift       Boolean      @default(false)
+  // Onboarding tracking
+  onboardingStep Int          @default(1)
+  onboardingDone Boolean      @default(false)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -99,6 +109,8 @@ model Business {
   outlets    Outlet[]
   employees  Employee[]
   roles      Role[]
+  subscription Subscription?
+  shifts       Shift[]
 }
 
 model Outlet {
@@ -169,4 +181,45 @@ model EmployeeOutlet {
   outlet   Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
 
   @@unique([employeeId, outletId])
+}
+
+// ============================================================
+// SUBSCRIPTION & PLAN
+// ============================================================
+
+model Plan {
+  id            String         @id @default(cuid())
+  name          String         @unique // "starter" | "pro" | "enterprise"
+  displayName   String         // "Starter" | "Pro" | "Enterprise"
+  maxOutlets    Int            // 1 | 10 | -1 (unlimited)
+  maxEmployees  Int            // 5 | 50 | -1 (unlimited)
+  features      String[]       // ["shift", "advanced_reports", "export", "api"]
+  price         Int            // Rupiah per bulan, 0 for starter
+  subscriptions Subscription[]
+  createdAt     DateTime       @default(now())
+}
+
+model Subscription {
+  id               String    @id @default(cuid())
+  businessId       String    @unique
+  business         Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  planId           String
+  plan             Plan      @relation(fields: [planId], references: [id])
+  status           String    // "trial" | "active" | "expired" | "cancelled"
+  trialEndsAt      DateTime?
+  currentPeriodEnd DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Shift {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name       String   // "Shift Pagi"
+  startTime  String   // "08:00"
+  endTime    String   // "15:00"
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
