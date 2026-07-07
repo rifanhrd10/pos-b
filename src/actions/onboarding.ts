@@ -29,7 +29,7 @@ async function advanceStep(businessId: string, nextStep: number) {
 
 export async function setupBusiness(formData: FormData) {
   const session = await auth();
-  if (!session?.user?.id) return { err: "Unauthorized" };
+  if (!session?.user?.id) return { error: "Unauthorized" };
 
   const raw = {
     name: formData.get("name") as string,
@@ -43,7 +43,7 @@ export async function setupBusiness(formData: FormData) {
 
   const result = businessSetupSchemaV2.safeParse(raw);
   if (!result.success) {
-    return { err: result.error.issues[0].message };
+    return { error: result.error.issues[0].message };
   }
 
   const logo = (formData.get("logo") as string) || undefined;
@@ -109,17 +109,17 @@ export async function setupBusiness(formData: FormData) {
 
 export async function selectPlan(formData: FormData) {
   const session = await auth();
-  if (!session?.user?.id) return { err: "Unauthorized" };
+  if (!session?.user?.id) return { error: "Unauthorized" };
 
   const raw = { planId: formData.get("planId") as string };
   const result = planSelectionSchema.safeParse(raw);
-  if (!result.success) return { err: result.error.issues[0].message };
+  if (!result.success) return { error: result.error.issues[0].message };
 
   const business = await getUserBusiness(session.user.id);
-  if (!business) return { err: "Bisnis tidak ditemukan" };
+  if (!business) return { error: "Bisnis tidak ditemukan" };
 
   const plan = await prisma.plan.findUnique({ where: { id: result.data.planId } });
-  if (!plan) return { err: "Plan tidak ditemukan" };
+  if (!plan) return { error: "Plan tidak ditemukan" };
 
   const trialEndsAt = new Date();
   trialEndsAt.setDate(trialEndsAt.getDate() + 14);
@@ -146,12 +146,12 @@ export async function selectPlan(formData: FormData) {
 
 export async function createOutlets(formData: FormData) {
   const session = await auth();
-  if (!session?.user?.id) return { err: "Unauthorized" };
+  if (!session?.user?.id) return { error: "Unauthorized" };
 
   const hasMultiOutlet = formData.get("hasMultiOutlet") === "true";
 
   const business = await getUserBusiness(session.user.id);
-  if (!business) return { err: "Bisnis tidak ditemukan" };
+  if (!business) return { error: "Bisnis tidak ditemukan" };
 
   const ownerEmployee = await prisma.employee.findFirst({
     where: { businessId: business.id, userId: session.user.id },
@@ -199,7 +199,7 @@ export async function createOutlets(formData: FormData) {
     i++;
   }
 
-  if (outletNames.length === 0) return { err: "Minimal 1 outlet harus diisi" };
+  if (outletNames.length === 0) return { error: "Minimal 1 outlet harus diisi" };
 
   const outletsToCreate = outletNames.map((_, idx) => ({
     businessId: business.id,
@@ -210,7 +210,7 @@ export async function createOutlets(formData: FormData) {
   }));
 
   const multiResult = multiOutletSchema.safeParse({ hasMultiOutlet: true, outlets: outletsToCreate });
-  if (!multiResult.success) return { err: multiResult.error.issues[0].message };
+  if (!multiResult.success) return { error: multiResult.error.issues[0].message };
 
   for (const outletData of outletsToCreate) {
     const outlet = await prisma.outlet.create({ data: outletData });
@@ -231,7 +231,7 @@ export async function createOutlets(formData: FormData) {
 
 export async function setupOperations(formData: FormData) {
   const session = await auth();
-  if (!session?.user?.id) return { err: "Unauthorized" };
+  if (!session?.user?.id) return { error: "Unauthorized" };
 
   const hasShift = formData.get("hasShift") === "true";
   const shifts: Array<{ name: string; startTime: string; endTime: string }> = [];
@@ -256,10 +256,10 @@ export async function setupOperations(formData: FormData) {
   };
 
   const result = operationsSchema.safeParse(raw);
-  if (!result.success) return { err: result.error.issues[0].message };
+  if (!result.success) return { error: result.error.issues[0].message };
 
   const business = await getUserBusiness(session.user.id);
-  if (!business) return { err: "Bisnis tidak ditemukan" };
+  if (!business) return { error: "Bisnis tidak ditemukan" };
 
   await prisma.business.update({
     where: { id: business.id },
@@ -296,10 +296,10 @@ export async function setupOperations(formData: FormData) {
 
 export async function completeOnboarding() {
   const session = await auth();
-  if (!session?.user?.id) return { err: "Unauthorized" };
+  if (!session?.user?.id) return { error: "Unauthorized" };
 
   const business = await getUserBusiness(session.user.id);
-  if (!business) return { err: "Bisnis tidak ditemukan" };
+  if (!business) return { error: "Bisnis tidak ditemukan" };
 
   await prisma.business.update({
     where: { id: business.id },
@@ -311,7 +311,7 @@ export async function completeOnboarding() {
 
 export async function seedDemoData() {
   const session = await auth();
-  if (!session?.user?.id) return { err: "Unauthorized" };
+  if (!session?.user?.id) return { error: "Unauthorized" };
 
   const business = await prisma.business.findFirst({
     where: { ownerId: session.user.id },
@@ -319,14 +319,14 @@ export async function seedDemoData() {
     orderBy: { createdAt: "desc" },
   });
 
-  if (!business) return { err: "Business not found" };
-  if (business.outlets.length === 0) return { err: "No outlet found" };
+  if (!business) return { error: "Business not found" };
+  if (business.outlets.length === 0) return { error: "No outlet found" };
 
   const outlet = business.outlets[0];
   const cashierRole = business.roles.find((r) => r.name === "Kasir");
   const managerRole = business.roles.find((r) => r.name === "Manager");
 
-  if (!cashierRole || !managerRole) return { err: "Roles not found" };
+  if (!cashierRole || !managerRole) return { error: "Roles not found" };
 
   const demoEmployees = [
     { name: "Budi Santoso", email: "budi@demo.id", phone: "081234567890", roleId: managerRole.id },

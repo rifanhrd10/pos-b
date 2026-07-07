@@ -36,8 +36,8 @@ export default function BusinessPage() {
 
     const result = await setupBusiness(formData);
 
-    if (result?.err) {
-      setError(result.err);
+    if (result?.error) {
+      setError(result.error);
       setLoading(false);
     } else {
       router.push("/onboarding/outlet");

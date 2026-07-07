@@ -24,8 +24,8 @@ export default function OutletPage() {
 
     const result = await createOutlets(formData);
 
-    if (result?.err) {
-      setError(result.err);
+    if (result?.error) {
+      setError(result.error);
       setLoading(false);
     } else {
       router.push("/onboarding/complete");

@@ -18,8 +18,8 @@ export default function CompletePage() {
 
     try {
       const result = await seedDemoData();
-      if (result?.err) {
-        setError(getErrorMessage(result.err));
+      if (result?.error) {
+        setError(getErrorMessage(result.error));
         return;
       }
       router.push("/dashboard");
@@ -78,8 +78,8 @@ export default function CompletePage() {
                 <Boxes className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-semibold text-slate-900">15+ Menu</p>
-                <p className="text-xs text-slate-500">Kategori & Varian</p>
+                <p className="font-semibold text-slate-900">1 Outlet</p>
+                <p className="text-xs text-slate-500">Cabang Demo</p>
               </div>
             </div>
           </div>
