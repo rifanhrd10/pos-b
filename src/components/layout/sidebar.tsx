@@ -9,6 +9,13 @@ import { cn } from "@/lib/utils";
 import { BayaroLogo } from "@/components/shared/logo";
 import { Badge } from "@/components/ui/badge";
 
+const TOUR_MAP: Record<string, string> = {
+  "/dashboard": "dashboard",
+  "/employees": "employees",
+  "/outlets": "outlets",
+  "/settings": "settings",
+};
+
 function SidebarContent({ collapsed }: { collapsed: boolean }) {
   const pathname = usePathname();
   const itemMap = new Map(navItems.map((item) => [item.href, item]));
@@ -71,6 +78,7 @@ function SidebarContent({ collapsed }: { collapsed: boolean }) {
                       <Link
                         key={item.href}
                         href={item.href}
+                        {...(TOUR_MAP[item.href] ? { "data-tour": TOUR_MAP[item.href] } : {})}
                         className={cn(
                           "flex rounded-2xl text-sm transition",
                           collapsed ? "justify-center px-2 py-3" : "items-center justify-between px-3 py-3",

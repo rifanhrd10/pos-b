@@ -1,4 +1,5 @@
 import { DashboardShell } from "@/components/layout/dashboard-shell";
+import { TourGuide } from "@/components/shared/tour-guide";
 import { auth, getBusinessContext } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -20,9 +21,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect("/onboarding/business");
   }
 
+  const hasCompletedTour = session?.user?.hasCompletedTour ?? true;
+
   return (
-    <DashboardShell userName={userName} outletName={outletName}>
-      {children}
-    </DashboardShell>
+    <>
+      <DashboardShell userName={userName} outletName={outletName}>
+        {children}
+      </DashboardShell>
+      <TourGuide hasCompletedTour={hasCompletedTour} />
+    </>
   );
 }
