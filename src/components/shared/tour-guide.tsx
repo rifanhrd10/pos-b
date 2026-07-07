@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import "driver.js/dist/driver.css";
 import { markTourComplete } from "@/actions/tour";
 
 type TourGuideProps = {
