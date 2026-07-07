@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { driver } from "driver.js";
-import "driver.js/dist/driver.css";
 import { markTourComplete } from "@/actions/tour";
 
 type TourGuideProps = {
@@ -13,7 +11,12 @@ export function TourGuide({ hasCompletedTour }: TourGuideProps) {
   useEffect(() => {
     if (hasCompletedTour) return;
 
-    const timeout = setTimeout(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+
+    // Lazy-import driver.js only in the browser — it uses window/document
+    const initTour = async () => {
+      const { driver } = await import("driver.js");
+
       const driverObj = driver({
         showProgress: true,
         progressText: "{{current}} dari {{total}}",
@@ -70,7 +73,9 @@ export function TourGuide({ hasCompletedTour }: TourGuideProps) {
       });
 
       driverObj.drive();
-    }, 800);
+    };
+
+    timeout = setTimeout(initTour, 800);
 
     return () => clearTimeout(timeout);
   }, [hasCompletedTour]);
