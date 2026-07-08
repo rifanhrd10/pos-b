@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   LogIn,
   MessageSquare,
+  Package,
   Settings,
   Shield,
   Store,
@@ -58,6 +59,11 @@ export const navItems: NavItem[] = [
   { href: "/login", label: "Login", icon: LogIn },
   { href: "/register", label: "Register", icon: UserPlus },
   { href: "/forgot-password", label: "Lupa Password", icon: KeyRound },
+  { href: "/inventory", label: "Stok Overview", icon: Package, permission: "inventory.view" },
+  { href: "/inventory/low-stock", label: "Stok Rendah", icon: Package, permission: "inventory.view" },
+  { href: "/inventory/adjustments", label: "Penyesuaian", icon: Package, permission: "inventory.view" },
+  { href: "/inventory/transfers", label: "Transfer", icon: Package, permission: "inventory.view" },
+  { href: "/inventory/opname", label: "Stok Opname", icon: Package, permission: "inventory.view" },
 ];
 
 export const navSections: NavSection[] = [
@@ -70,6 +76,17 @@ export const navSections: NavSection[] = [
     label: "Operasional",
     description: "Kelola karyawan, outlet, dan hak akses.",
     items: ["/employees", "/outlets", "/roles"],
+  },
+  {
+    label: "Inventori",
+    description: "Kelola stok, penyesuaian, dan transfer inventori.",
+    items: [
+      "/inventory",
+      "/inventory/low-stock",
+      "/inventory/adjustments",
+      "/inventory/transfers",
+      "/inventory/opname",
+    ],
   },
   {
     label: "UI Elements",
