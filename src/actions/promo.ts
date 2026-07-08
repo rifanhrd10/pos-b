@@ -266,7 +266,7 @@ export async function getActivePromos(
 ): Promise<unknown[]> {
   const now = new Date();
 
-  return prisma.promo.findMany({
+  const promos = await prisma.promo.findMany({
     where: {
       businessId,
       isActive: true,
@@ -274,7 +274,6 @@ export async function getActivePromos(
         { OR: [{ startDate: null }, { startDate: { lte: now } }] },
         { OR: [{ endDate: null }, { endDate: { gte: now } }] },
         { OR: [{ minOrderAmount: null }, { minOrderAmount: { lte: orderTotal } }] },
-        { OR: [{ usageLimit: null }, { usageCount: { lt: prisma.promo.fields.usageLimit } }] },
       ],
     },
     include: {
@@ -286,6 +285,11 @@ export async function getActivePromos(
     },
     orderBy: [{ type: "asc" }, { name: "asc" }],
   });
+
+  // Filter usageLimit in-memory — Prisma doesn't support field-to-field comparison
+  return promos.filter(
+    (p) => p.usageLimit === null || p.usageCount < p.usageLimit
+  );
 }
 
 export async function applyPromoByCode(
