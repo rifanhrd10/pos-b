@@ -7,6 +7,8 @@ import { ShiftModal } from "@/components/kasir/shift-modal";
 import { TableSelection } from "@/components/kasir/table-selection";
 import { ProductCatalog } from "@/components/kasir/product-catalog";
 import { CartPanel } from "@/components/kasir/cart-panel";
+import { PaymentModal } from "@/components/kasir/payment-modal";
+import { ReceiptModal } from "@/components/kasir/receipt-modal";
 import {
   getOrCreateDraftOrder,
   addOrderItem,
@@ -44,6 +46,9 @@ type OrderWithItems = {
 interface PosClientProps {
   kasirName: string;
   outletName: string;
+  businessName: string;
+  businessAddress?: string | null;
+  businessPhone?: string | null;
   employeeId: string;
   outletId: string;
   businessId: string;
@@ -59,11 +64,32 @@ interface PosClientProps {
   categories: Array<{ id: string; name: string }>;
   businessTaxRate: number;
   businessServiceRate: number;
+  paymentMethods: Array<{
+    id: string;
+    type: string;
+    name: string;
+    qrisImage?: string | null;
+    qrisNote?: string | null;
+  }>;
+  receiptSettings?: {
+    header1?: string | null;
+    header2?: string | null;
+    header3?: string | null;
+    footer?: string | null;
+    showLogo?: boolean;
+    showAddress?: boolean;
+    showPhone?: boolean;
+    showKasir?: boolean;
+    thankYou?: string | null;
+  } | null;
 }
 
 export function PosClient({
   kasirName,
   outletName,
+  businessName,
+  businessAddress,
+  businessPhone,
   employeeId,
   outletId,
   businessId,
@@ -74,6 +100,8 @@ export function PosClient({
   categories,
   businessTaxRate,
   businessServiceRate,
+  paymentMethods,
+  receiptSettings,
 }: PosClientProps) {
   const router = useRouter();
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
@@ -88,6 +116,15 @@ export function PosClient({
   );
   const [shiftSummary, setShiftSummary] = useState<ShiftSummary | null>(null);
   const [showPayModal, setShowPayModal] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [lastPayment, setLastPayment] = useState<{
+    id: string;
+    method: string;
+    totalAmount: number;
+    cashEntered?: number | null;
+    changeAmount?: number | null;
+    paidAt: Date | string;
+  } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const refreshOrder = useCallback(
@@ -267,6 +304,35 @@ export function PosClient({
     }
   };
 
+  const handlePaymentSuccess = async (paymentId: string) => {
+    setShowPayModal(false);
+    
+    // Fetch payment details from the order
+    if (currentOrderId) {
+      const order = await getOrderWithItems(currentOrderId);
+      if (order?.payment) {
+        setLastPayment({
+          id: order.payment.id,
+          method: order.payment.method,
+          totalAmount: order.payment.totalAmount,
+          cashEntered: order.payment.cashEntered,
+          changeAmount: order.payment.changeAmount,
+          paidAt: order.payment.paidAt,
+        });
+        setShowReceiptModal(true);
+      }
+    }
+  };
+
+  const handleReceiptClose = () => {
+    setShowReceiptModal(false);
+    setLastPayment(null);
+    setCurrentOrder(null);
+    setCurrentOrderId(null);
+    setSelectedTableId(null);
+    router.refresh();
+  };
+
   return (
     <div className="flex flex-col h-screen bg-slate-900">
       {sessionId && sessionOpenedAt && (
@@ -340,20 +406,27 @@ export function PosClient({
         />
       )}
 
-      {showPayModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 w-full max-w-md">
-            <p className="text-slate-300 text-center">
-              Payment Modal akan diimplementasikan di Block F
-            </p>
-            <button
-              onClick={() => setShowPayModal(false)}
-              className="mt-4 w-full py-3 bg-slate-600 hover:bg-slate-500 text-slate-50 rounded-xl"
-            >
-              Tutup
-            </button>
-          </div>
-        </div>
+      {showPayModal && currentOrder && (
+        <PaymentModal
+          order={currentOrder}
+          paymentMethods={paymentMethods}
+          employeeId={employeeId}
+          onSuccess={handlePaymentSuccess}
+          onClose={() => setShowPayModal(false)}
+        />
+      )}
+
+      {showReceiptModal && currentOrder && lastPayment && (
+        <ReceiptModal
+          order={currentOrder}
+          payment={lastPayment}
+          businessName={businessName}
+          businessAddress={businessAddress}
+          businessPhone={businessPhone}
+          kasirName={kasirName}
+          receiptSettings={receiptSettings ?? undefined}
+          onClose={handleReceiptClose}
+        />
       )}
     </div>
   );

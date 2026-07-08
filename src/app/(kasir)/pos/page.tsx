@@ -7,6 +7,7 @@ import {
   getTableStatuses,
   getPosProducts,
   getPosCategories,
+  getPaymentMethods,
 } from "@/actions/kasir";
 import { getKasirEmployeeId, getKasirOutletId } from "@/lib/outlet-context";
 import { prisma } from "@/lib/prisma";
@@ -43,23 +44,59 @@ export default async function PosPage() {
 
   const business = await prisma.business.findUnique({
     where: { id: outlet.businessId },
-    select: { taxRate: true, serviceRate: true },
+    select: { 
+      name: true,
+      address: true,
+      phone: true,
+      taxRate: true, 
+      serviceRate: true 
+    },
   });
 
   const businessTaxRate = business?.taxRate ?? 0;
   const businessServiceRate = business?.serviceRate ?? 0;
 
-  const [tables, tableStatuses, products, categories] = await Promise.all([
+  const [tables, tableStatuses, products, categories, paymentMethods, businessSettings] = await Promise.all([
     getTables(outletId),
     getTableStatuses(outletId),
     getPosProducts(outlet.businessId),
     getPosCategories(outlet.businessId),
+    getPaymentMethods(outlet.businessId),
+    prisma.businessSettings.findUnique({
+      where: { businessId: outlet.businessId },
+      select: {
+        receiptHeader1: true,
+        receiptHeader2: true,
+        receiptHeader3: true,
+        receiptFooter: true,
+        receiptShowLogo: true,
+        receiptShowAddress: true,
+        receiptShowPhone: true,
+        receiptShowKasir: true,
+        receiptThankYou: true,
+      },
+    }),
   ]);
+
+  const receiptSettings = businessSettings ? {
+    header1: businessSettings.receiptHeader1,
+    header2: businessSettings.receiptHeader2,
+    header3: businessSettings.receiptHeader3,
+    footer: businessSettings.receiptFooter,
+    showLogo: businessSettings.receiptShowLogo ?? undefined,
+    showAddress: businessSettings.receiptShowAddress ?? undefined,
+    showPhone: businessSettings.receiptShowPhone ?? undefined,
+    showKasir: businessSettings.receiptShowKasir ?? undefined,
+    thankYou: businessSettings.receiptThankYou,
+  } : null;
 
   return (
     <PosClient
       kasirName={employee.name}
       outletName={outlet.name}
+      businessName={business?.name ?? ""}
+      businessAddress={business?.address}
+      businessPhone={business?.phone}
       employeeId={employeeId}
       outletId={outletId}
       businessId={outlet.businessId}
@@ -70,6 +107,8 @@ export default async function PosPage() {
       categories={categories}
       businessTaxRate={businessTaxRate}
       businessServiceRate={businessServiceRate}
+      paymentMethods={paymentMethods}
+      receiptSettings={receiptSettings}
     />
   );
 }
