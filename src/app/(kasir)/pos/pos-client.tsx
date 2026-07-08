@@ -9,6 +9,7 @@ import { ProductCatalog } from "@/components/kasir/product-catalog";
 import { CartPanel } from "@/components/kasir/cart-panel";
 import { PaymentModal } from "@/components/kasir/payment-modal";
 import { ReceiptModal } from "@/components/kasir/receipt-modal";
+import { LaporanPanel } from "@/components/kasir/laporan-panel";
 import {
   getOrCreateDraftOrder,
   addOrderItem,
@@ -385,11 +386,12 @@ export function PosClient({
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center text-slate-400">
-          <div className="text-center">
-            <p className="text-xl font-medium">Laporan Panel</p>
-            <p className="text-sm mt-2">(coming soon in Block E)</p>
-          </div>
+        <div className="flex-1 overflow-y-auto p-6">
+          <LaporanPanel
+            sessionId={sessionId ?? ""}
+            kasirName={kasirName}
+            outletName={outletName}
+          />
         </div>
       )}
 
