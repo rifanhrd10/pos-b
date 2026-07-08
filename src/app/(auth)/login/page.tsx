@@ -4,10 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { loginUser } from "@/actions/auth";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { BayaroLogo } from "@/components/shared/logo";
-import { ArrowRight, Sparkles, Store, BarChart3, CreditCard, Shield, Users } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,7 +23,9 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData();
+    formData.append("email", email);
+    formData.append("password", password);
     const result = await loginUser(formData);
 
     if (result?.error) {
@@ -38,172 +37,176 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-screen lg:grid-cols-[1.2fr_0.8fr] bg-white">
-      {/* Left Premium Graphic Panel */}
-      <section className="relative hidden flex-col justify-between overflow-hidden bg-[#0A0F1C] p-12 text-white lg:flex">
-        {/* Abstract 3D Background - High quality Unsplash abstract */}
-        <div className="absolute inset-0 opacity-40 mix-blend-screen bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')] bg-cover bg-center" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0A0F1C] via-[#0A0F1C]/80 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0A0F1C] via-[#0A0F1C]/50 to-transparent" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light" />
-        
-        {/* Dynamic Orbs for depth */}
-        <div className="absolute -left-[10%] top-[20%] h-[50vh] w-[50vh] animate-[spin_20s_linear_infinite] rounded-full bg-cyan-500/20 blur-[100px]" />
-        <div className="absolute -right-[10%] bottom-[10%] h-[60vh] w-[60vh] animate-[spin_25s_linear_infinite_reverse] rounded-full bg-blue-600/20 blur-[120px]" />
-
-        <div className="relative z-10">
-          <BayaroLogo dark />
+    <main className="flex min-h-screen overflow-hidden text-on-background bg-background font-body-md selection:bg-secondary-container selection:text-on-secondary-container">
+      {/* Left Hero Column */}
+      <section className="relative hidden w-7/12 md:flex flex-col justify-between overflow-hidden bg-primary">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <img alt="Modern POS setup" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMkfvqYg4Vi6MlSuFFVlDYjk2X0HCKu0nQwBILABN3ocA9iXCisXldartSydijcBrYj2aMtqzuNBAAn_zP1Kru_2H0-wH4OfUsjblraA907u96kBPI4sS5b0HtXYCs2l--yDzyh77DfluVMR9mzebzHhGRzic0RWmvPPNSe7Gjr_LjtIcyRwOtNQALZ16mPepKaX3fK3EW_y77Rw5AHpYIgIKoHB572NzxCq27etXomtuaWM3Tlw" />
+          <div className="absolute inset-0 hero-overlay"></div>
         </div>
 
-        <div className="relative z-10 max-w-xl">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium backdrop-blur-md shadow-lg shadow-black/20">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-500"></span>
+        {/* Top Header */}
+        <header className="relative z-10 flex justify-between items-center w-full px-12 py-8">
+          <BayaroLogo dark />
+          <div className="bg-white/5 backdrop-blur-xl px-4 py-1.5 rounded-full border border-white/10">
+            <span className="flex items-center gap-2 font-label-md text-label-md text-white/90">
+              <span className="w-1.5 h-1.5 rounded-full bg-secondary-container animate-pulse"></span>
+              Bayaro POS v2.0
             </span>
-            Bayaro POS v2.0
           </div>
-          <h1 className="font-heading text-5xl font-bold leading-[1.15] tracking-tight">
-            Sistem POS modern untuk <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-200">skala tak terbatas.</span>
-          </h1>
-          <p className="mt-6 text-lg leading-relaxed text-slate-300">
+        </header>
+
+        {/* Hero Content */}
+        <div className="relative z-10 px-16 max-w-4xl">
+          <h2 className="font-display-lg text-display-lg text-white mb-6 leading-[1.1]">
+            Solusi POS Terpercaya untuk <br /><span className="text-secondary-container">UMKM Indonesia.</span>
+          </h2>
+          <p className="font-body-lg text-body-lg text-white/70 mb-16 max-w-xl">
             Kelola ribuan transaksi, monitor puluhan cabang, dan analisa performa bisnis secara real-time dari satu dashboard intuitif.
           </p>
 
-          <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {[
-              { icon: Store, title: "Multi Cabang", desc: "Satu akun, banyak toko" },
-              { icon: BarChart3, title: "Laporan Real-time", desc: "Pantau omzet langsung" },
-              { icon: CreditCard, title: "Multi Payment", desc: "QRIS, Cash, EDC" },
-            ].map((feature, i) => (
-              <div key={i} className="group rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-1">
-                <feature.icon className="mb-3 h-6 w-6 text-cyan-400 transition-transform group-hover:scale-110" />
-                <h3 className="font-semibold text-white">{feature.title}</h3>
-                <p className="mt-1 text-xs text-slate-400">{feature.desc}</p>
+          {/* Redesigned Minimal Feature Cards */}
+          <div className="grid grid-cols-3 gap-6">
+            <div className="glass-card p-6 rounded-2xl transition-all duration-300 group">
+              <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center mb-5 group-hover:bg-secondary-container/20 transition-colors">
+                <span className="material-symbols-outlined text-secondary-container text-2xl">storefront</span>
               </div>
-            ))}
+              <h3 className="font-title-lg text-[16px] text-white mb-2 font-semibold">Multi Cabang</h3>
+              <p className="font-label-md text-[13px] text-white/50 leading-relaxed">Satu akun untuk kendali penuh banyak toko.</p>
+            </div>
+            
+            <div className="glass-card p-6 rounded-2xl transition-all duration-300 group">
+              <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center mb-5 group-hover:bg-secondary-container/20 transition-colors">
+                <span className="material-symbols-outlined text-secondary-container text-2xl">monitoring</span>
+              </div>
+              <h3 className="font-title-lg text-[16px] text-white mb-2 font-semibold">Real-time</h3>
+              <p className="font-label-md text-[13px] text-white/50 leading-relaxed">Pantau omzet langsung dari mana saja.</p>
+            </div>
+            
+            <div className="glass-card p-6 rounded-2xl transition-all duration-300 group">
+              <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center mb-5 group-hover:bg-secondary-container/20 transition-colors">
+                <span className="material-symbols-outlined text-secondary-container text-2xl">credit_card</span>
+              </div>
+              <h3 className="font-title-lg text-[16px] text-white mb-2 font-semibold">Multi Payment</h3>
+              <p className="font-label-md text-[13px] text-white/50 leading-relaxed">Terima QRIS, Tunai, dan EDC instan.</p>
+            </div>
           </div>
         </div>
 
-        <div className="relative z-10 text-sm font-medium text-slate-500">
-          © {new Date().getFullYear()} Bayaro Technologies.
-        </div>
+        {/* Footer Left */}
+        <footer className="relative z-10 px-12 py-8">
+          <p className="font-label-md text-label-md text-white/30">
+            © {new Date().getFullYear()} Bayaro Technologies. Hak Cipta Dilindungi.
+          </p>
+        </footer>
       </section>
 
-      {/* Right Form Panel */}
-      <section className="flex items-center justify-center bg-white p-6 md:p-12">
-        <div className="w-full max-w-[420px]">
-          <div className="mb-10 flex justify-center lg:hidden">
+      {/* Right Login Column */}
+      <section className="flex-1 bg-surface-container-lowest flex flex-col justify-center items-center px-8 lg:px-24">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="md:hidden flex items-center justify-center mb-12">
             <BayaroLogo />
           </div>
-
-          <div className="mb-10 text-center lg:text-left">
-            <h2 className="font-heading text-3xl font-bold tracking-tight text-slate-900">
-              Selamat Datang
-            </h2>
-            <p className="mt-3 text-base text-slate-500">
-              Silakan masukkan email dan password untuk masuk ke dashboard admin.
-            </p>
+          
+          <div className="mb-10">
+            <h2 className="font-headline-lg text-headline-lg text-on-surface mb-2">Selamat Datang</h2>
+            <p className="font-body-md text-body-md text-on-surface-variant">Silakan masukkan email dan password untuk masuk ke dashboard admin.</p>
           </div>
 
           {error && (
-            <div className="mb-6 flex animate-in fade-in slide-in-from-top-2 items-start gap-3 rounded-2xl border border-rose-200/50 bg-rose-50 p-4 text-sm text-rose-600 shadow-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="mt-0.5 h-5 w-5 shrink-0 text-rose-500">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-              </svg>
+            <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200/50 bg-red-50 p-4 text-sm text-red-600 shadow-sm">
+              <span className="material-symbols-outlined text-red-500 mt-0.5">error</span>
               <p>{error}</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2 group/input">
-              <label className="text-sm font-semibold text-slate-700 transition-colors group-focus-within/input:text-bayaro-blue">Email Address</label>
-              <Input 
-                name="email" 
-                type="email" 
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div className="group">
+              <label className="block font-label-md text-label-md text-on-surface-variant mb-2 transition-colors group-focus-within:text-primary" htmlFor="email">Email Address</label>
+              <input 
+                id="email" 
+                name="email"
+                type="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3.5 rounded-xl border border-outline-variant focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none bg-surface" 
                 placeholder="nama@bisnis.com" 
-                className="h-12 border-slate-200 bg-slate-50/50 text-base shadow-sm transition-all focus:bg-white focus:ring-2 focus:ring-bayaro-blue/20 hover:bg-slate-50" 
-                required 
               />
             </div>
             
-            <div className="space-y-2 group/input">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-semibold text-slate-700 transition-colors group-focus-within/input:text-bayaro-blue">Password</label>
-                <Link href="/forgot-password" className="text-sm font-medium text-bayaro-blue transition-colors hover:text-blue-700 hover:underline">
-                  Lupa password?
-                </Link>
+            <div className="group">
+              <div className="flex justify-between items-center mb-2">
+                <label className="block font-label-md text-label-md text-on-surface-variant transition-colors group-focus-within:text-primary" htmlFor="password">Password</label>
+                <Link className="font-label-md text-label-md text-secondary hover:underline" href="/forgot-password">Lupa password?</Link>
               </div>
-              <Input 
-                name="password" 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••" 
-                className="h-12 border-slate-200 bg-slate-50/50 text-base shadow-sm transition-all focus:bg-white focus:ring-2 focus:ring-bayaro-blue/20 hover:bg-slate-50" 
-                required 
-              />
-            </div>
-
-            <div className="pt-4 space-y-6">
-              <Button type="submit" isLoading={loading} className="group/btn relative w-full h-12 overflow-hidden rounded-xl bg-bayaro-blue text-base text-white shadow-[0_4px_14px_0_rgb(0,118,255,0.39)] transition-all hover:shadow-[0_6px_20px_rgba(0,118,255,0.23)] hover:-translate-y-[1px]">
-                <span className="relative z-10 flex items-center justify-center gap-2">
-                  {loading ? "Membuka Dashboard..." : "Masuk ke Dashboard"}
-                  {!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />}
-                </span>
-                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-1000 group-hover/btn:translate-x-full" />
-              </Button>
-              
-              <div className="pt-2 border-t border-slate-100">
-                <p className="text-xs font-semibold text-slate-400 mb-4 text-center tracking-wide">PILIH AKUN DEMO</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div 
-                    onClick={() => handleDemo('admin')}
-                    className="group cursor-pointer rounded-2xl border border-slate-200 p-3 hover:border-bayaro-blue/50 hover:bg-blue-50/30 hover:shadow-sm transition-all flex flex-col items-center"
-                  >
-                    <div className="h-10 w-10 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center mb-2 group-hover:bg-blue-100 group-hover:text-bayaro-blue transition-colors">
-                      <Shield className="h-5 w-5" />
-                    </div>
-                    <div className="text-sm font-bold text-slate-700 group-hover:text-bayaro-blue">Admin</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5 text-center leading-tight">Akses Penuh</div>
-                  </div>
-                  
-                  <div 
-                    onClick={() => handleDemo('kasir')}
-                    className="group cursor-pointer rounded-2xl border border-slate-200 p-3 hover:border-bayaro-blue/50 hover:bg-blue-50/30 hover:shadow-sm transition-all flex flex-col items-center"
-                  >
-                    <div className="h-10 w-10 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center mb-2 group-hover:bg-blue-100 group-hover:text-bayaro-blue transition-colors">
-                      <Store className="h-5 w-5" />
-                    </div>
-                    <div className="text-sm font-bold text-slate-700 group-hover:text-bayaro-blue">Kasir</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5 text-center leading-tight">Transaksi</div>
-                  </div>
-                  
-                  <div 
-                    onClick={() => handleDemo('manager')}
-                    className="group cursor-pointer rounded-2xl border border-slate-200 p-3 hover:border-bayaro-blue/50 hover:bg-blue-50/30 hover:shadow-sm transition-all flex flex-col items-center col-span-2"
-                  >
-                    <div className="h-10 w-10 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center mb-2 group-hover:bg-blue-100 group-hover:text-bayaro-blue transition-colors">
-                      <Users className="h-5 w-5" />
-                    </div>
-                    <div className="text-sm font-bold text-slate-700 group-hover:text-bayaro-blue">Manajer Cabang</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5 text-center leading-tight">Laporan & Karyawan</div>
-                  </div>
-                </div>
+              <div className="relative">
+                <input 
+                  id="password" 
+                  name="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3.5 rounded-xl border border-outline-variant focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none bg-surface pr-12" 
+                  placeholder="••••••••" 
+                />
+                <button className="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface" type="button">
+                  <span className="material-symbols-outlined text-[20px]">visibility_off</span>
+                </button>
               </div>
             </div>
+            
+            <button disabled={loading} className="w-full bg-primary text-on-primary py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-primary-container transition-all active:scale-[0.98] custom-shadow disabled:opacity-70 disabled:cursor-not-allowed" type="submit">
+              {loading ? "Membuka Dashboard..." : "Masuk ke Dashboard"}
+              {!loading && <span className="material-symbols-outlined text-lg">arrow_forward</span>}
+            </button>
           </form>
 
-          <div className="mt-10 text-center text-sm text-slate-500">
-            Belum punya akun?{" "}
-            <Link href="/register" className="font-semibold text-bayaro-blue transition-colors hover:text-blue-700 hover:underline">
-              Daftar Gratis Sekarang
-            </Link>
+          {/* Divider */}
+          <div className="relative my-10">
+            <div aria-hidden="true" className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-outline-variant/60"></div>
+            </div>
+            <div className="relative flex justify-center text-label-md uppercase tracking-widest font-label-md">
+              <span className="bg-surface-container-lowest px-4 text-outline/60">Pilih Akun Demo</span>
+            </div>
+          </div>
+
+          {/* Demo Accounts */}
+          <div className="grid grid-cols-3 gap-2 p-1.5 bg-surface-container rounded-2xl mb-8">
+            <button type="button" onClick={() => handleDemo('admin')} className="demo-card-hover flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl bg-surface-container-lowest text-primary custom-shadow transition-all group">
+              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>admin_panel_settings</span>
+              <span className="font-bold text-[13px] tracking-tight">Admin</span>
+            </button>
+            <button type="button" onClick={() => handleDemo('kasir')} className="demo-card-hover flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl text-on-surface-variant hover:bg-surface-container-lowest hover:text-primary transition-all group focus:bg-surface-container-lowest focus:text-primary focus:shadow-sm">
+              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 0" }}>point_of_sale</span>
+              <span className="font-semibold text-[13px] tracking-tight">Kasir</span>
+            </button>
+            <button type="button" onClick={() => handleDemo('manager')} className="demo-card-hover flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl text-on-surface-variant hover:bg-surface-container-lowest hover:text-primary transition-all group focus:bg-surface-container-lowest focus:text-primary focus:shadow-sm">
+              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 0" }}>group</span>
+              <span className="font-semibold text-[13px] tracking-tight">Manajer</span>
+            </button>
+          </div>
+
+          <div className="text-center">
+            <p className="font-body-md text-body-md text-on-surface-variant">
+              Belum punya akun? <Link className="text-secondary font-semibold hover:underline" href="/register">Daftar Gratis Sekarang</Link>
+            </p>
           </div>
         </div>
+
+        {/* Footer Mobile */}
+        <footer className="mt-16 w-full md:hidden flex flex-col gap-4 items-center">
+          <div className="flex gap-6">
+            <Link className="font-label-md text-label-md text-outline hover:text-on-surface" href="#">Bantuan</Link>
+            <Link className="font-label-md text-label-md text-outline hover:text-on-surface" href="#">Privasi</Link>
+            <Link className="font-label-md text-label-md text-outline hover:text-on-surface" href="#">Syarat</Link>
+          </div>
+          <p className="font-label-md text-label-md text-outline">© {new Date().getFullYear()} Bayaro Technologies.</p>
+        </footer>
       </section>
     </main>
   );
