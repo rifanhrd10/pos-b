@@ -23,6 +23,15 @@ type OrderWithItems = {
     notes: string | null;
     toppings: Array<{ id: string; name: string; price: number }>;
   }>;
+  promos?: Array<{
+    id: string;
+    discountAmount: number;
+    promo: {
+      id: string;
+      name: string;
+      type: string;
+    };
+  }>;
 };
 
 interface ReceiptModalProps {
@@ -188,6 +197,32 @@ export function ReceiptModal({
                 <span>Subtotal</span>
                 <span>{formatCurrency(order.subtotal)}</span>
               </div>
+
+              {/* Promo/Diskon Section */}
+              {order.promos && order.promos.length > 0 && (
+                <>
+                  <div className="my-1">{divider}</div>
+                  <div className="font-semibold">Promo/Diskon:</div>
+                  {order.promos.map((orderPromo) => (
+                    <div key={orderPromo.id} className="flex justify-between pl-2">
+                      <span>
+                        - {orderPromo.promo.name}{" "}
+                        <span className="text-[9px] text-gray-600">
+                          ({orderPromo.promo.type === "VOUCHER" ? "Voucher" : 
+                            orderPromo.promo.type === "BUNDLE" ? "Bundle" : "Happy Hour"})
+                        </span>
+                      </span>
+                      <span>-{formatCurrency(orderPromo.discountAmount)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between font-semibold">
+                    <span>Total Diskon:</span>
+                    <span>-{formatCurrency(order.discountAmount)}</span>
+                  </div>
+                  <div className="my-1">{divider}</div>
+                </>
+              )}
+
               {order.taxAmount > 0 && (
                 <div className="flex justify-between">
                   <span>PPN ({((order.taxAmount / order.subtotal) * 100).toFixed(0)}%)</span>

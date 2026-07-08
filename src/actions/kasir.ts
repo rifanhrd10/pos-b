@@ -288,6 +288,11 @@ export async function getOrderWithItems(orderId: string) {
         },
       },
       payment: true,
+      promos: {
+        include: {
+          promo: true,
+        },
+      },
     },
   });
 }

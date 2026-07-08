@@ -42,6 +42,15 @@ type OrderWithItems = {
     notes: string | null;
     toppings: Array<{ id: string; name: string; price: number }>;
   }>;
+  promos?: Array<{
+    id: string;
+    discountAmount: number;
+    promo: {
+      id: string;
+      name: string;
+      type: string;
+    };
+  }>;
 };
 
 interface PosClientProps {
