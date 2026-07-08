@@ -119,6 +119,7 @@ model Business {
   orders         Order[]
   payments       Payment[]
   cashierSessions CashierSession[]
+  promos         Promo[]
 }
 
 model Outlet {
@@ -282,6 +283,7 @@ model Product {
   stocks        Stock[]
   transferItems StockTransferItem[]
   orderItems    OrderItem[]
+  promoBundles  PromoBundle[]
 }
 
 model ProductVariant {
@@ -441,6 +443,7 @@ model Order {
   cashierSession CashierSession? @relation(fields: [cashierSessionId], references: [id])
   items          OrderItem[]
   payment        Payment?
+  promos         OrderPromo[]
 }
 
 model OrderItem {
@@ -602,4 +605,82 @@ model PaymentMethod {
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@unique([businessId, type, name])
+}
+
+// ============================================================
+// PROMO & DISKON
+// ============================================================
+
+enum PromoType {
+  VOUCHER
+  BUNDLE
+  HAPPY_HOUR
+}
+
+enum DiscountType {
+  PERCENTAGE
+  NOMINAL
+}
+
+model Promo {
+  id             String       @id @default(cuid())
+  businessId     String
+  name           String
+  description    String?
+  type           PromoType
+  discountType   DiscountType @default(PERCENTAGE)
+  discountValue  Float
+
+  // Voucher
+  code           String?
+
+  // Limits
+  minOrderAmount Float?
+  maxDiscount    Float?
+  usageLimit     Int?
+  usageCount     Int          @default(0)
+
+  // Validity
+  startDate      DateTime?
+  endDate        DateTime?
+
+  // Happy Hour
+  startHour      Int?
+  endHour        Int?
+
+  // Status
+  isActive       Boolean      @default(true)
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  business    Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  bundleItems PromoBundle[]
+  orderPromos OrderPromo[]
+
+  @@unique([businessId, code])
+}
+
+model PromoBundle {
+  id          String @id @default(cuid())
+  promoId     String
+  productId   String
+  requiredQty Int
+  freeQty     Int
+
+  promo   Promo   @relation(fields: [promoId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model OrderPromo {
+  id             String   @id @default(cuid())
+  orderId        String
+  promoId        String
+  discountAmount Float
+  appliedAt      DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  promo Promo @relation(fields: [promoId], references: [id])
+
+  @@unique([orderId, promoId])
 }
