@@ -131,6 +131,7 @@ model Outlet {
 
   business  Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
   employees EmployeeOutlet[]
+  stocks    Stock[]
 }
 
 // ============================================================
@@ -265,6 +266,7 @@ model Product {
   category    Category?        @relation(fields: [categoryId], references: [id])
   variants    ProductVariant[]
   toppings    ProductTopping[]
+  stocks      Stock[]
 }
 
 model ProductVariant {
@@ -277,6 +279,7 @@ model ProductVariant {
   sortOrder       Int      @default(0)
 
   product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stocks          Stock[]
 }
 
 model ProductTopping {
@@ -287,4 +290,70 @@ model ProductTopping {
   isActive  Boolean  @default(true)
 
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// INVENTORY
+// ============================================================
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+  TRANSFER
+  OPNAME
+}
+
+model Stock {
+  id        String   @id @default(cuid())
+  outletId  String
+  productId String
+  variantId String?
+  quantity  Int      @default(0)
+  minStock  Int      @default(5)
+  updatedAt DateTime @updatedAt
+
+  outlet    Outlet          @relation(fields: [outletId], references: [id])
+  product   Product         @relation(fields: [productId], references: [id])
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+  movements StockMovement[]
+
+  @@unique([outletId, productId, variantId])
+}
+
+model StockMovement {
+  id        String            @id @default(cuid())
+  stockId   String
+  type      StockMovementType
+  quantity  Int
+  note      String?
+  reference String?
+  createdBy String?
+  createdAt DateTime          @default(now())
+
+  stock Stock @relation(fields: [stockId], references: [id])
+}
+
+model StockTransfer {
+  id           String    @id @default(cuid())
+  businessId   String
+  fromOutletId String
+  toOutletId   String
+  status       String    @default("pending")
+  note         String?
+  createdBy    String
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  items StockTransferItem[]
+}
+
+model StockTransferItem {
+  id         String  @id @default(cuid())
+  transferId String
+  productId  String
+  variantId  String?
+  quantity   Int
+
+  transfer StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
 }
