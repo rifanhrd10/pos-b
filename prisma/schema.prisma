@@ -471,6 +471,13 @@ model OrderItemTopping {
   orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 }
 
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+}
+
 model Payment {
   id           String   @id @default(cuid())
   orderId      String   @unique
@@ -482,6 +489,12 @@ model Payment {
   cashEntered  Float?
   changeAmount Float?
   referenceNo  String?
+  
+  // Gateway integration fields
+  externalId   String?       // Midtrans order_id or Xendit invoice_id
+  qrUrl        String?       // URL QR image dari gateway
+  status       PaymentStatus @default(PENDING) // PENDING | PAID | FAILED | EXPIRED
+  
   paidAt       DateTime @default(now())
   createdAt    DateTime @default(now())
 
