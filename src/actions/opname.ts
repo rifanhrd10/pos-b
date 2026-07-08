@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { submitOpnameSchema } from "@/lib/validations";
 
 export interface OpnameItem {
   stockId?: string;
@@ -122,6 +123,10 @@ export async function submitOpname(
   try {
     const session = await auth();
     if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+    // Zod validation
+    const parsed = submitOpnameSchema.safeParse(data);
+    if (!parsed.success) return { success: false, error: parsed.error.issues[0].message };
 
     const { outletId, createdBy, items } = data;
     let adjustedCount = 0;

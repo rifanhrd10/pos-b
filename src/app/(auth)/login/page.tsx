@@ -7,12 +7,19 @@ import { loginUser } from "@/actions/auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { BayaroLogo } from "@/components/shared/logo";
-import { ArrowRight, Sparkles, Store, BarChart3, CreditCard } from "lucide-react";
+import { ArrowRight, Sparkles, Store, BarChart3, CreditCard, Shield, Users } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleDemo = (role: 'admin' | 'kasir' | 'manager') => {
+    setEmail(`${role}@bayaro.id`);
+    setPassword("demo123");
+  };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -115,6 +122,8 @@ export default function LoginPage() {
               <Input 
                 name="email" 
                 type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="nama@bisnis.com" 
                 className="h-12 border-slate-200 bg-slate-50/50 text-base shadow-sm transition-all focus:bg-white focus:ring-2 focus:ring-bayaro-blue/20 hover:bg-slate-50" 
                 required 
@@ -131,13 +140,15 @@ export default function LoginPage() {
               <Input 
                 name="password" 
                 type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••" 
                 className="h-12 border-slate-200 bg-slate-50/50 text-base shadow-sm transition-all focus:bg-white focus:ring-2 focus:ring-bayaro-blue/20 hover:bg-slate-50" 
                 required 
               />
             </div>
 
-            <div className="pt-4">
+            <div className="pt-4 space-y-6">
               <Button type="submit" isLoading={loading} className="group/btn relative w-full h-12 overflow-hidden rounded-xl bg-bayaro-blue text-base text-white shadow-[0_4px_14px_0_rgb(0,118,255,0.39)] transition-all hover:shadow-[0_6px_20px_rgba(0,118,255,0.23)] hover:-translate-y-[1px]">
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   {loading ? "Membuka Dashboard..." : "Masuk ke Dashboard"}
@@ -145,6 +156,44 @@ export default function LoginPage() {
                 </span>
                 <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-1000 group-hover/btn:translate-x-full" />
               </Button>
+              
+              <div className="pt-2 border-t border-slate-100">
+                <p className="text-xs font-semibold text-slate-400 mb-4 text-center tracking-wide">PILIH AKUN DEMO</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div 
+                    onClick={() => handleDemo('admin')}
+                    className="group cursor-pointer rounded-2xl border border-slate-200 p-3 hover:border-bayaro-blue/50 hover:bg-blue-50/30 hover:shadow-sm transition-all flex flex-col items-center"
+                  >
+                    <div className="h-10 w-10 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center mb-2 group-hover:bg-blue-100 group-hover:text-bayaro-blue transition-colors">
+                      <Shield className="h-5 w-5" />
+                    </div>
+                    <div className="text-sm font-bold text-slate-700 group-hover:text-bayaro-blue">Admin</div>
+                    <div className="text-[11px] text-slate-500 mt-0.5 text-center leading-tight">Akses Penuh</div>
+                  </div>
+                  
+                  <div 
+                    onClick={() => handleDemo('kasir')}
+                    className="group cursor-pointer rounded-2xl border border-slate-200 p-3 hover:border-bayaro-blue/50 hover:bg-blue-50/30 hover:shadow-sm transition-all flex flex-col items-center"
+                  >
+                    <div className="h-10 w-10 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center mb-2 group-hover:bg-blue-100 group-hover:text-bayaro-blue transition-colors">
+                      <Store className="h-5 w-5" />
+                    </div>
+                    <div className="text-sm font-bold text-slate-700 group-hover:text-bayaro-blue">Kasir</div>
+                    <div className="text-[11px] text-slate-500 mt-0.5 text-center leading-tight">Transaksi</div>
+                  </div>
+                  
+                  <div 
+                    onClick={() => handleDemo('manager')}
+                    className="group cursor-pointer rounded-2xl border border-slate-200 p-3 hover:border-bayaro-blue/50 hover:bg-blue-50/30 hover:shadow-sm transition-all flex flex-col items-center col-span-2"
+                  >
+                    <div className="h-10 w-10 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center mb-2 group-hover:bg-blue-100 group-hover:text-bayaro-blue transition-colors">
+                      <Users className="h-5 w-5" />
+                    </div>
+                    <div className="text-sm font-bold text-slate-700 group-hover:text-bayaro-blue">Manajer Cabang</div>
+                    <div className="text-[11px] text-slate-500 mt-0.5 text-center leading-tight">Laporan & Karyawan</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </form>
 

@@ -1,9 +1,10 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { auth, getBusinessContext } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { StockMovementType } from "@prisma/client";
+import { adjustStockSchema } from "@/lib/validations";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -91,7 +92,9 @@ export async function getLowStockItems(businessId: string, outletId?: string) {
     },
   });
 
-  // Filter client-side so we can compare quantity <= minStock
+  // Note: Prisma doesn't support column-to-column comparisons natively.
+  // Filtering quantity <= minStock is done in-memory after fetching all stocks.
+  // For very large catalogs, consider using a raw SQL query for performance.
   return stocks.filter(
     (s) => s.product.trackStock && s.quantity <= s.minStock
   );
@@ -151,10 +154,22 @@ export async function getRecentMovements(businessId: string, limit = 100) {
 export async function adjustStock(data: AdjustStockData) {
   const session = await auth();
   if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const ctx = await getBusinessContext(session.user.id);
+  if (!ctx) return { success: false, error: "Business not found" };
+
+  // Zod validation
+  const parsed = adjustStockSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0].message };
 
   try {
     const { outletId, productId, variantId, quantity, type, note, reference, createdBy } =
       data;
+
+    // Ownership check: verify the outlet belongs to the current user's business
+    const outlet = await prisma.outlet.findFirst({
+      where: { id: outletId, businessId: ctx.businessId },
+    });
+    if (!outlet) return { success: false, error: "Forbidden" };
 
     // Validate quantity is positive for IN/OUT
     if ((type === "IN" || type === "OUT") && quantity <= 0) {
@@ -241,8 +256,18 @@ export async function adjustStock(data: AdjustStockData) {
 export async function setMinStock(stockId: string, minStock: number) {
   const session = await auth();
   if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const ctx = await getBusinessContext(session.user.id);
+  if (!ctx) return { success: false, error: "Business not found" };
 
   try {
+    // Ownership check: verify the stock's outlet belongs to the current user's business
+    const stock = await prisma.stock.findUnique({
+      where: { id: stockId },
+      include: { outlet: { select: { businessId: true } } },
+    });
+    if (!stock) return { success: false, error: "Stock not found" };
+    if (stock.outlet.businessId !== ctx.businessId) return { success: false, error: "Forbidden" };
+
     await prisma.stock.update({
       where: { id: stockId },
       data: { minStock },

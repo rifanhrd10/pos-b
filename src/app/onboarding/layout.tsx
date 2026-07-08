@@ -1,12 +1,17 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { BayaroLogo } from "@/components/shared/logo";
 import { OnboardingStepper } from "@/components/shared/onboarding-stepper";
-import { Sparkles, Building2, Store, CheckCircle2, Clock } from "lucide-react";
+import { Sparkles, Building2, Store, CheckCircle2, Clock, LogOut } from "lucide-react";
+import { signOut } from "next-auth/react";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "";
+  const [logoutOpen, setLogoutOpen] = useState(false);
   
   const steps = [
     { 
@@ -119,8 +124,17 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
           </div>
         </div>
 
-        <div className="relative z-10 text-sm font-medium text-slate-600">
-          © {new Date().getFullYear()} Bayaro Technologies
+        <div className="relative z-10 flex items-center justify-between">
+          <div className="text-sm font-medium text-slate-600">
+            © {new Date().getFullYear()} Bayaro Technologies
+          </div>
+          <button 
+            onClick={() => setLogoutOpen(true)}
+            className="flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+            Keluar
+          </button>
         </div>
       </aside>
 
@@ -128,7 +142,16 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
       <div className="flex flex-col bg-[#F8FAFC] lg:bg-white h-screen overflow-y-auto overflow-x-hidden relative">
         <div className="flex items-center justify-between border-b border-slate-100 bg-white/90 px-6 py-4 backdrop-blur-md sticky top-0 z-50 lg:hidden">
           <BayaroLogo />
-          <OnboardingStepper />
+          <div className="flex items-center gap-4">
+            <OnboardingStepper />
+            <button 
+              onClick={() => setLogoutOpen(true)} 
+              className="text-slate-400 hover:text-rose-500 transition-colors"
+              title="Keluar"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* Dynamic Background for Right Side */}
@@ -144,6 +167,25 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
           </div>
         </div>
       </div>
+
+      <Modal 
+        open={logoutOpen} 
+        onClose={() => setLogoutOpen(false)}
+        title="Konfirmasi Keluar"
+        size="sm"
+      >
+        <div className="text-slate-600">
+          Apakah Anda yakin ingin keluar dari akun ini?
+        </div>
+        <div className="mt-6 flex justify-end gap-3">
+          <Button variant="outline" onClick={() => setLogoutOpen(false)}>
+            Batal
+          </Button>
+          <Button variant="danger" onClick={() => signOut({ callbackUrl: "/login" })}>
+            Ya, Keluar
+          </Button>
+        </div>
+      </Modal>
     </main>
   );
 }

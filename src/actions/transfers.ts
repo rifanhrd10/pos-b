@@ -1,9 +1,10 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { auth, getBusinessContext } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { StockMovementType } from "@prisma/client";
+import { createTransferSchema } from "@/lib/validations";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -219,17 +220,18 @@ export async function getTransfer(id: string) {
 export async function createTransfer(data: CreateTransferData) {
   const session = await auth();
   if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const ctx = await getBusinessContext(session.user.id);
+  if (!ctx) return { success: false, error: "Business not found" };
+
+  // Zod validation (validates fromOutletId, toOutletId, items)
+  const parsed = createTransferSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0].message };
 
   try {
     const { businessId, fromOutletId, toOutletId, note, createdBy, items } = data;
 
-    if (fromOutletId === toOutletId) {
-      return { success: false, error: "Source and destination outlets must be different" };
-    }
-
-    if (!items || items.length === 0) {
-      return { success: false, error: "Transfer must include at least one item" };
-    }
+    // Ownership check: businessId in payload must match authenticated user's business
+    if (businessId !== ctx.businessId) return { success: false, error: "Forbidden" };
 
     const transfer = await prisma.stockTransfer.create({
       data: {
@@ -262,11 +264,14 @@ export async function createTransfer(data: CreateTransferData) {
 export async function approveTransfer(id: string) {
   const session = await auth();
   if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const ctx = await getBusinessContext(session.user.id);
+  if (!ctx) return { success: false, error: "Business not found" };
 
   try {
     const transfer = await prisma.stockTransfer.findUnique({ where: { id } });
 
     if (!transfer) return { success: false, error: "Transfer not found" };
+    if (transfer.businessId !== ctx.businessId) return { success: false, error: "Forbidden" };
     if (transfer.status !== "pending") {
       return { success: false, error: `Cannot approve a transfer with status "${transfer.status}"` };
     }
@@ -288,6 +293,8 @@ export async function approveTransfer(id: string) {
 export async function receiveTransfer(id: string, receivedBy: string) {
   const session = await auth();
   if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const ctx = await getBusinessContext(session.user.id);
+  if (!ctx) return { success: false, error: "Business not found" };
 
   try {
     const transfer = await prisma.stockTransfer.findUnique({
@@ -296,6 +303,7 @@ export async function receiveTransfer(id: string, receivedBy: string) {
     });
 
     if (!transfer) return { success: false, error: "Transfer not found" };
+    if (transfer.businessId !== ctx.businessId) return { success: false, error: "Forbidden" };
     if (transfer.status !== "in_transit") {
       return {
         success: false,
@@ -349,11 +357,14 @@ export async function receiveTransfer(id: string, receivedBy: string) {
 export async function cancelTransfer(id: string) {
   const session = await auth();
   if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const ctx = await getBusinessContext(session.user.id);
+  if (!ctx) return { success: false, error: "Business not found" };
 
   try {
     const transfer = await prisma.stockTransfer.findUnique({ where: { id } });
 
     if (!transfer) return { success: false, error: "Transfer not found" };
+    if (transfer.businessId !== ctx.businessId) return { success: false, error: "Forbidden" };
     if (transfer.status !== "pending" && transfer.status !== "in_transit") {
       return {
         success: false,
