@@ -618,3 +618,31 @@ export async function getPaymentMethods(businessId: string) {
     orderBy: { sortOrder: "asc" },
   });
 }
+
+// ─── PIN + Outlet Selector Actions ────────────────────────────
+
+export async function submitPinAndGetRedirect(
+  employeeId: string,
+  pin: string
+): Promise<{ ok: boolean; redirectTo?: string; error?: string }> {
+  const result = await verifyPin(employeeId, pin);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  const { setKasirEmployeeCookie, setKasirOutletCookie } = await import("@/lib/outlet-context");
+  await setKasirEmployeeCookie(employeeId);
+
+  const outlets = await getAssignedOutlets(employeeId);
+  if (outlets.length === 1) {
+    await setKasirOutletCookie(outlets[0].id);
+    return { ok: true, redirectTo: "/kasir/pos" };
+  }
+  return { ok: true, redirectTo: "/kasir/outlet" };
+}
+
+export async function selectKasirOutlet(
+  outletId: string
+): Promise<{ ok: boolean; redirectTo?: string; error?: string }> {
+  const { setKasirOutletCookie } = await import("@/lib/outlet-context");
+  await setKasirOutletCookie(outletId);
+  return { ok: true, redirectTo: "/kasir/pos" };
+}
