@@ -89,7 +89,43 @@ Kembali:             3.788
 
 ---
 
-## 5. Deliverables Checklist
+## 5. Payment Settings Integration (from Phase 11)
+
+Payment method configuration is stored in the `PaymentMethod` model, configured via **Settings → Payment Methods**.
+
+Phase 6 implementation should read from this model:
+
+```
+PaymentMethod.type:
+  CASH         → always available, no external API
+  QRIS_STATIC  → load qrisImage from settings, display to customer
+                 kasir confirms manually with "Sudah Dibayar" button
+                 NOTE: no auto-verification possible
+  QRIS_DYNAMIC → use provider + apiKey + apiSecret from settings
+                 Midtrans: midtrans-client npm, serverKey from settings
+                 Xendit: xendit-node npm, secretKey from settings
+                 Custom: POST to apiEndpoint with apiKey header
+```
+
+**QRIS Static flow (Phase 6):**
+```
+→ Load qrisImage from PaymentMethod where type=QRIS_STATIC
+→ Display QR image fullscreen to customer
+→ Show [Sudah Dibayar] button (no polling, no webhook)
+→ Kasir clicks → mark transaction COMPLETED → print receipt
+```
+
+**QRIS Dynamic flow (Phase 6):**
+```
+→ Read provider/apiKey/apiSecret from PaymentMethod where type=QRIS_DYNAMIC
+→ Call provider API to generate dynamic QR
+→ Poll or webhook for payment status
+→ Auto-confirm → mark COMPLETED → print receipt
+```
+
+---
+
+## 6. Deliverables Checklist
 
 ```
 - [ ] Build payment modal component
