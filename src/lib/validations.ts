@@ -129,3 +129,47 @@ export const productSchema = z.object({
   variants: z.array(variantSchema).optional(),
   toppings: z.array(toppingSchema).optional(),
 });
+
+// Inventory schemas
+
+export const adjustStockSchema = z.object({
+  outletId: z.string().min(1, "Outlet wajib dipilih"),
+  productId: z.string().min(1, "Produk wajib dipilih"),
+  variantId: z.string().optional(),
+  quantity: z.number().int("Jumlah harus bilangan bulat"),
+  type: z.enum(["IN", "OUT", "ADJUSTMENT"]),
+  note: z.string().optional(),
+  reference: z.string().optional(),
+});
+
+export const setMinStockSchema = z.object({
+  stockId: z.string().min(1),
+  minStock: z.number().int().min(0, "Min stok tidak boleh negatif"),
+});
+
+export const createTransferSchema = z.object({
+  fromOutletId: z.string().min(1, "Outlet asal wajib dipilih"),
+  toOutletId: z.string().min(1, "Outlet tujuan wajib dipilih"),
+  note: z.string().optional(),
+  items: z.array(z.object({
+    productId: z.string().min(1),
+    variantId: z.string().optional(),
+    quantity: z.number().int().min(1, "Jumlah minimal 1"),
+  })).min(1, "Minimal 1 item transfer"),
+}).refine(data => data.fromOutletId !== data.toOutletId, {
+  message: "Outlet asal dan tujuan tidak boleh sama",
+  path: ["toOutletId"],
+});
+
+export const submitOpnameSchema = z.object({
+  outletId: z.string().min(1),
+  items: z.array(z.object({
+    stockId: z.string().min(1),
+    actualQty: z.number().int().min(0, "Jumlah tidak boleh negatif"),
+  })).min(1, "Minimal 1 item opname"),
+});
+
+export type AdjustStockInput = z.infer<typeof adjustStockSchema>;
+export type SetMinStockInput = z.infer<typeof setMinStockSchema>;
+export type CreateTransferInput = z.infer<typeof createTransferSchema>;
+export type SubmitOpnameInput = z.infer<typeof submitOpnameSchema>;
