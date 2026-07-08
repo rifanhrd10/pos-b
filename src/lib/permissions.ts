@@ -4,6 +4,7 @@ export const PERMISSIONS = {
   "pos.void": "Void transaksi",
   "pos.refund": "Refund transaksi",
   "pos.discount": "Beri diskon manual",
+  "pos.close_shift": "Tutup shift kasir",
   "products.view": "Lihat produk",
   "products.manage": "Kelola produk (CRUD)",
   "products.pricing": "Ubah harga",

@@ -69,6 +69,7 @@ export const navItems: NavItem[] = [
   { href: "/inventory/adjustments", label: "Penyesuaian", icon: Package, permission: "inventory.view" },
   { href: "/inventory/transfers", label: "Transfer", icon: Package, permission: "inventory.view" },
   { href: "/inventory/opname", label: "Stok Opname", icon: Package, permission: "inventory.view" },
+  { href: "/kasir", label: "POS Kasir", icon: Store, permission: "pos.access" },
 ];
 
 export const navSections: NavSection[] = [
@@ -92,6 +93,11 @@ export const navSections: NavSection[] = [
       "/inventory/transfers",
       "/inventory/opname",
     ],
+  },
+  {
+    label: "POS Kasir",
+    description: "Akses kasir untuk transaksi penjualan.",
+    items: ["/kasir"],
   },
   {
     label: "Pengaturan",
