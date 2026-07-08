@@ -108,6 +108,44 @@ export async function getMovementHistory(stockId: string, limit = 50) {
   });
 }
 
+export async function getRecentMovements(businessId: string, limit = 100) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Unauthorized" };
+
+  const movements = await prisma.stockMovement.findMany({
+    where: {
+      stock: {
+        product: { businessId },
+      },
+    },
+    include: {
+      stock: {
+        include: {
+          product: { select: { id: true, name: true, sku: true } },
+          outlet: { select: { id: true, name: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+
+  return movements.map((m) => ({
+    id: m.id,
+    type: m.type,
+    quantity: m.quantity,
+    note: m.note,
+    reference: m.reference,
+    createdBy: m.createdBy,
+    createdAt: m.createdAt,
+    productId: m.stock.product.id,
+    productName: m.stock.product.name,
+    productSku: m.stock.product.sku,
+    outletId: m.stock.outletId,
+    outletName: m.stock.outlet.name,
+  }));
+}
+
 // ─── Mutations ────────────────────────────────────────────────────────────────
 
 export async function adjustStock(data: AdjustStockData) {
