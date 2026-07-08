@@ -1,6 +1,28 @@
 "use client";
 
-import { ShoppingCart, Minus, Plus, X } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { ShoppingCart, Minus, Plus, X, Tag, ChevronDown } from "lucide-react";
+import { getActivePromos, applyPromoByCode, applyPromoById, removePromo } from "@/actions/promo";
+import { emitToast } from "@/components/ui/toast-provider";
+
+type ActivePromo = {
+  id: string;
+  name: string;
+  type: string;
+  discountType: string;
+  discountValue: number;
+  code?: string | null;
+};
+
+type OrderPromo = {
+  id: string;
+  discountAmount: number;
+  promo: {
+    id: string;
+    name: string;
+    type: string;
+  };
+};
 
 type OrderWithItems = {
   id: string;
@@ -23,16 +45,19 @@ type OrderWithItems = {
     notes: string | null;
     toppings: Array<{ id: string; name: string; price: number }>;
   }>;
+  promos?: OrderPromo[];
 };
 
 interface CartPanelProps {
   order: OrderWithItems | null;
+  businessId: string;
   businessTaxRate: number;
   businessServiceRate: number;
   onUpdateQty: (orderItemId: string, qty: number) => void;
   onRemoveItem: (orderItemId: string) => void;
   onPay: () => void;
   onSaveBill: () => void;
+  onRefreshOrder: (orderId: string) => Promise<void>;
   loading?: boolean;
 }
 
@@ -45,15 +70,102 @@ const formatCurrency = (amount: number) =>
 
 export function CartPanel({
   order,
+  businessId,
   businessTaxRate,
   businessServiceRate,
   onUpdateQty,
   onRemoveItem,
   onPay,
   onSaveBill,
+  onRefreshOrder,
   loading = false,
 }: CartPanelProps) {
   const hasItems = order && order.items.length > 0;
+
+  // Promo state
+  const [voucherCode, setVoucherCode] = useState("");
+  const [selectedPromoId, setSelectedPromoId] = useState("");
+  const [activePromos, setActivePromos] = useState<ActivePromo[]>([]);
+  const [promoLoading, setPromoLoading] = useState(false);
+
+  const fetchActivePromos = useCallback(async () => {
+    if (!businessId || !order) return;
+    try {
+      const promos = await getActivePromos(businessId, order.subtotal) as ActivePromo[];
+      setActivePromos(promos);
+    } catch {
+      // silently ignore fetch errors
+    }
+  }, [businessId, order?.subtotal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (order?.id) {
+      fetchActivePromos();
+    }
+  }, [order?.id, order?.subtotal, fetchActivePromos]);
+
+  const handleApplyVoucher = async () => {
+    if (!order || !voucherCode.trim()) return;
+    setPromoLoading(true);
+    try {
+      const result = await applyPromoByCode(order.id, voucherCode.trim());
+      if (result.ok) {
+        emitToast({ title: `Promo "${result.promoName}" diterapkan`, tone: "success" });
+        setVoucherCode("");
+        await onRefreshOrder(order.id);
+        await fetchActivePromos();
+      } else {
+        emitToast({ title: result.error ?? "Gagal menerapkan promo", tone: "error" });
+      }
+    } catch {
+      emitToast({ title: "Terjadi kesalahan", tone: "error" });
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const handleApplyPromoById = async () => {
+    if (!order || !selectedPromoId) return;
+    setPromoLoading(true);
+    try {
+      const result = await applyPromoById(order.id, selectedPromoId);
+      if (result.ok) {
+        emitToast({ title: `Promo "${result.promoName}" diterapkan`, tone: "success" });
+        setSelectedPromoId("");
+        await onRefreshOrder(order.id);
+        await fetchActivePromos();
+      } else {
+        emitToast({ title: result.error ?? "Gagal menerapkan promo", tone: "error" });
+      }
+    } catch {
+      emitToast({ title: "Terjadi kesalahan", tone: "error" });
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const handleRemovePromo = async (promoId: string) => {
+    if (!order) return;
+    setPromoLoading(true);
+    try {
+      const result = await removePromo(order.id, promoId);
+      if (result.ok) {
+        emitToast({ title: "Promo dihapus", tone: "info" });
+        await onRefreshOrder(order.id);
+        await fetchActivePromos();
+      } else {
+        emitToast({ title: result.error ?? "Gagal menghapus promo", tone: "error" });
+      }
+    } catch {
+      emitToast({ title: "Terjadi kesalahan", tone: "error" });
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  // Filter out already-applied promos from the dropdown
+  const appliedPromoIds = new Set((order?.promos ?? []).map((op) => op.promo.id));
+  const availablePromos = activePromos.filter((p) => !appliedPromoIds.has(p.id));
 
   return (
     <div className="flex flex-col h-full bg-slate-800/50 rounded-xl overflow-hidden">
@@ -124,7 +236,9 @@ export function CartPanel({
                 >
                   <Minus className="w-4 h-4 text-slate-50" />
                 </button>
-                <span className="text-slate-50 font-bold w-8 text-center">{item.quantity}</span>
+                <span className="text-slate-50 font-bold w-6 text-center text-sm">
+                  {item.quantity}
+                </span>
                 <button
                   onClick={() => onUpdateQty(item.id, item.quantity + 1)}
                   disabled={loading}
@@ -136,39 +250,150 @@ export function CartPanel({
                 >
                   <Plus className="w-4 h-4 text-slate-50" />
                 </button>
-                <span className="text-slate-400 text-xs ml-auto">{formatCurrency(item.price)}/item</span>
               </div>
             </div>
           ))
         )}
       </div>
 
-      {/* Footer */}
-      <div className="bg-slate-700 rounded-b-xl p-4">
-        {order && (
-          <div className="space-y-1.5 mb-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-400">Subtotal</span>
-              <span className="text-slate-50">{formatCurrency(order.subtotal)}</span>
-            </div>
-            {businessTaxRate > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-400">PPN ({businessTaxRate}%)</span>
-                <span className="text-slate-50">{formatCurrency(order.taxAmount)}</span>
+      {/* Bottom section */}
+      <div className="p-3 border-t border-slate-700 space-y-3">
+        {hasItems && (
+          <>
+            {/* ── Promo & Diskon Section ── */}
+            <div className="bg-slate-700/60 rounded-xl p-3 space-y-2">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Tag className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-slate-300 text-xs font-semibold uppercase tracking-wide">
+                  Promo &amp; Diskon
+                </span>
               </div>
-            )}
-            {businessServiceRate > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Layanan ({businessServiceRate}%)</span>
-                <span className="text-slate-50">{formatCurrency(order.serviceAmount)}</span>
+
+              {/* Applied promos badges */}
+              {(order?.promos ?? []).length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {order!.promos!.map((op) => (
+                    <div
+                      key={op.id}
+                      className="flex items-center gap-1 bg-green-900/40 border border-green-700/50 rounded-lg px-2 py-1"
+                    >
+                      <span className="text-green-300 text-xs font-medium">{op.promo.name}</span>
+                      <span className="text-green-400 text-xs">
+                        -{formatCurrency(op.discountAmount)}
+                      </span>
+                      <button
+                        onClick={() => handleRemovePromo(op.promo.id)}
+                        disabled={promoLoading}
+                        className="text-green-500 hover:text-red-400 transition-colors ml-0.5 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Voucher code input */}
+              <div className="flex gap-1.5">
+                <input
+                  type="text"
+                  value={voucherCode}
+                  onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === "Enter" && handleApplyVoucher()}
+                  placeholder="Kode voucher..."
+                  disabled={promoLoading || !order}
+                  className="
+                    flex-1 bg-slate-600 border border-slate-500 rounded-lg px-2.5 py-1.5
+                    text-slate-50 text-xs placeholder-slate-400
+                    focus:outline-none focus:border-blue-400
+                    disabled:opacity-50
+                  "
+                />
+                <button
+                  onClick={handleApplyVoucher}
+                  disabled={promoLoading || !voucherCode.trim() || !order}
+                  className="
+                    px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white
+                    rounded-lg text-xs font-medium transition-all duration-150
+                    cursor-pointer active:scale-95
+                    disabled:opacity-40 disabled:cursor-not-allowed
+                  "
+                >
+                  Terapkan
+                </button>
               </div>
-            )}
-            <div className="h-px bg-slate-600 my-2" />
-            <div className="flex justify-between items-center">
-              <span className="text-slate-300 font-medium">Total</span>
-              <span className="text-xl font-bold text-slate-50">{formatCurrency(order.totalAmount)}</span>
+
+              {/* Dropdown select from active promos */}
+              {availablePromos.length > 0 && (
+                <div className="flex gap-1.5">
+                  <div className="flex-1 relative">
+                    <select
+                      value={selectedPromoId}
+                      onChange={(e) => setSelectedPromoId(e.target.value)}
+                      disabled={promoLoading || !order}
+                      className="
+                        w-full bg-slate-600 border border-slate-500 rounded-lg px-2.5 py-1.5 pr-7
+                        text-slate-50 text-xs appearance-none
+                        focus:outline-none focus:border-blue-400
+                        disabled:opacity-50 cursor-pointer
+                      "
+                    >
+                      <option value="">Pilih promo tersedia...</option>
+                      {availablePromos.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                          {p.code ? ` (${p.code})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                  </div>
+                  <button
+                    onClick={handleApplyPromoById}
+                    disabled={promoLoading || !selectedPromoId || !order}
+                    className="
+                      px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white
+                      rounded-lg text-xs font-medium transition-all duration-150
+                      cursor-pointer active:scale-95
+                      disabled:opacity-40 disabled:cursor-not-allowed
+                    "
+                  >
+                    Terapkan
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
+
+            {/* Summary */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-slate-400 text-xs">
+                <span>Subtotal</span>
+                <span>{formatCurrency(order.subtotal)}</span>
+              </div>
+              {businessTaxRate > 0 && (
+                <div className="flex justify-between text-slate-400 text-xs">
+                  <span>Pajak ({businessTaxRate}%)</span>
+                  <span>{formatCurrency(order.taxAmount)}</span>
+                </div>
+              )}
+              {businessServiceRate > 0 && (
+                <div className="flex justify-between text-slate-400 text-xs">
+                  <span>Service ({businessServiceRate}%)</span>
+                  <span>{formatCurrency(order.serviceAmount)}</span>
+                </div>
+              )}
+              {order.discountAmount > 0 && (
+                <div className="flex justify-between text-green-400 text-xs">
+                  <span>Diskon</span>
+                  <span>-{formatCurrency(order.discountAmount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-1 border-t border-slate-600">
+                <span className="text-slate-300 text-sm font-semibold">Total</span>
+                <span className="text-xl font-bold text-slate-50">{formatCurrency(order.totalAmount)}</span>
+              </div>
+            </div>
+          </>
         )}
 
         {/* Buttons */}

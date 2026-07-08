@@ -167,6 +167,15 @@ export function PosClient({
               price: t.price,
             })),
           })),
+          promos: order.promos?.map((op) => ({
+            id: op.id,
+            discountAmount: op.discountAmount,
+            promo: {
+              id: op.promo.id,
+              name: op.promo.name,
+              type: op.promo.type,
+            },
+          })),
         });
       }
     },
@@ -383,12 +392,14 @@ export function PosClient({
             <div className="h-[45%]">
               <CartPanel
                 order={currentOrder}
+                businessId={businessId}
                 businessTaxRate={businessTaxRate}
                 businessServiceRate={businessServiceRate}
                 onUpdateQty={handleUpdateQty}
                 onRemoveItem={handleRemoveItem}
                 onPay={handlePay}
                 onSaveBill={handleSaveBill}
+                onRefreshOrder={refreshOrder}
                 loading={isPending}
               />
             </div>
