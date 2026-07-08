@@ -173,3 +173,73 @@ export type AdjustStockInput = z.infer<typeof adjustStockSchema>;
 export type SetMinStockInput = z.infer<typeof setMinStockSchema>;
 export type CreateTransferInput = z.infer<typeof createTransferSchema>;
 export type SubmitOpnameInput = z.infer<typeof submitOpnameSchema>;
+
+// ─── Settings schemas ────────────────────────────────────────────────────────
+
+export const updateBusinessProfileSchema = z.object({
+  name: z.string().min(1, "Nama bisnis wajib diisi"),
+  phone: z.string().optional(),
+  email: z.string().email("Email tidak valid").optional().or(z.literal("")),
+  address: z.string().optional(),
+  province: z.string().optional(),
+})
+
+export const updateTaxSettingsSchema = z.object({
+  taxRate: z.number().min(0).max(100),
+  serviceRate: z.number().min(0).max(100),
+})
+
+export const updateReceiptTemplateSchema = z.object({
+  receiptHeader1: z.string().optional(),
+  receiptHeader2: z.string().optional(),
+  receiptHeader3: z.string().optional(),
+  receiptFooter: z.string().optional(),
+  receiptShowLogo: z.boolean().optional(),
+  receiptShowAddress: z.boolean().optional(),
+  receiptShowPhone: z.boolean().optional(),
+  receiptShowKasir: z.boolean().optional(),
+  receiptNumberFormat: z.string().optional(),
+  receiptThankYou: z.string().optional(),
+})
+
+export const updateGeneralSettingsSchema = z.object({
+  dateFormat: z.enum(["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"]),
+  timezone: z.enum(["Asia/Jakarta", "Asia/Makassar", "Asia/Jayapura"]),
+  language: z.enum(["id", "en"]),
+  autoPrintReceipt: z.boolean(),
+})
+
+export const createPaymentMethodSchema = z.object({
+  type: z.enum(["CASH", "QRIS_STATIC", "QRIS_DYNAMIC", "BANK_TRANSFER", "EWALLET"]),
+  name: z.string().min(1, "Nama metode pembayaran wajib diisi"),
+  isEnabled: z.boolean().default(true),
+  sortOrder: z.number().int().default(0),
+  qrisImage: z.string().optional(),
+  qrisNote: z.string().optional(),
+  provider: z.enum(["MIDTRANS", "XENDIT", "CUSTOM"]).optional(),
+  apiKey: z.string().optional(),
+  apiSecret: z.string().optional(),
+  apiEndpoint: z.string().optional(),
+  merchantId: z.string().optional(),
+  bankName: z.string().optional(),
+  accountNumber: z.string().optional(),
+  accountName: z.string().optional(),
+  walletNumber: z.string().optional(),
+  walletName: z.string().optional(),
+})
+
+export const changePasswordSchema = z.object({
+  oldPassword: z.string().min(1, "Password lama wajib diisi"),
+  newPassword: z.string().min(8, "Password baru minimal 8 karakter"),
+  confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi"),
+}).refine(data => data.newPassword === data.confirmPassword, {
+  message: "Konfirmasi password tidak cocok",
+  path: ["confirmPassword"],
+})
+
+export type UpdateBusinessProfileInput = z.infer<typeof updateBusinessProfileSchema>
+export type UpdateTaxSettingsInput = z.infer<typeof updateTaxSettingsSchema>
+export type UpdateReceiptTemplateInput = z.infer<typeof updateReceiptTemplateSchema>
+export type UpdateGeneralSettingsInput = z.infer<typeof updateGeneralSettingsSchema>
+export type CreatePaymentMethodInput = z.infer<typeof createPaymentMethodSchema>
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>
