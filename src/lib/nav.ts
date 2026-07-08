@@ -55,7 +55,12 @@ export const navItems: NavItem[] = [
   { href: "/pages/invoice", label: "Invoice", icon: FileText },
   { href: "/pages/pricing", label: "Pricing", icon: BarChart3 },
   { href: "/profile", label: "Profile", icon: User },
-  { href: "/settings", label: "Pengaturan", icon: Settings, permission: "settings.manage" },
+  { href: "/settings/business", label: "Profil Bisnis", icon: Settings, permission: "settings.manage" },
+  { href: "/settings/tax", label: "Pajak & Service", icon: Settings, permission: "settings.manage" },
+  { href: "/settings/receipt", label: "Template Struk", icon: Settings, permission: "settings.manage" },
+  { href: "/settings/payment", label: "Metode Pembayaran", icon: Settings, permission: "settings.manage" },
+  { href: "/settings/general", label: "General", icon: Settings, permission: "settings.manage" },
+  { href: "/settings/account", label: "Akun", icon: Settings, permission: "settings.manage" },
   { href: "/login", label: "Login", icon: LogIn },
   { href: "/register", label: "Register", icon: UserPlus },
   { href: "/forgot-password", label: "Lupa Password", icon: KeyRound },
@@ -89,6 +94,18 @@ export const navSections: NavSection[] = [
     ],
   },
   {
+    label: "Pengaturan",
+    description: "Konfigurasi bisnis, pajak, struk, dan akun.",
+    items: [
+      "/settings/business",
+      "/settings/tax",
+      "/settings/receipt",
+      "/settings/payment",
+      "/settings/general",
+      "/settings/account",
+    ],
+  },
+  {
     label: "UI Elements",
     description: "Komponen dan elemen UI siap pakai.",
     items: ["/ui/tables", "/ui/forms", "/ui/cards", "/ui/modals", "/ui/buttons", "/ui/alerts"],
@@ -101,7 +118,7 @@ export const navSections: NavSection[] = [
   {
     label: "User",
     description: "Akun dan pengaturan pengguna.",
-    items: ["/profile", "/settings"],
+    items: ["/profile"],
   },
   {
     label: "Auth Pages",
