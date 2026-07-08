@@ -113,6 +113,8 @@ model Business {
   shifts       Shift[]
   categories   Category[]
   products     Product[]
+  settings       BusinessSettings?
+  paymentMethods PaymentMethod[]
 }
 
 model Outlet {
@@ -360,4 +362,84 @@ model StockTransferItem {
   transfer  StockTransfer   @relation(fields: [transferId], references: [id], onDelete: Cascade)
   product   Product         @relation(fields: [productId], references: [id])
   variant   ProductVariant? @relation(fields: [variantId], references: [id])
+}
+
+// SETTINGS
+
+model BusinessSettings {
+  id         String  @id @default(cuid())
+  businessId String  @unique
+
+  // Receipt template
+  receiptHeader1      String?
+  receiptHeader2      String?
+  receiptHeader3      String?
+  receiptFooter       String?
+  receiptShowLogo     Boolean @default(true)
+  receiptShowAddress  Boolean @default(true)
+  receiptShowPhone    Boolean @default(true)
+  receiptShowKasir    Boolean @default(true)
+  receiptNumberFormat String  @default("TRX-{YYYYMMDD}-{SEQ}")
+  receiptThankYou     String? @default("Terima kasih atas kunjungan Anda!")
+
+  // General
+  dateFormat       String  @default("DD/MM/YYYY")
+  timezone         String  @default("Asia/Jakarta")
+  language         String  @default("id")
+  autoPrintReceipt Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+enum PaymentMethodType {
+  CASH
+  QRIS_STATIC
+  QRIS_DYNAMIC
+  BANK_TRANSFER
+  EWALLET
+}
+
+enum QrisProvider {
+  MIDTRANS
+  XENDIT
+  CUSTOM
+}
+
+model PaymentMethod {
+  id         String            @id @default(cuid())
+  businessId String
+  type       PaymentMethodType
+  name       String
+  isEnabled  Boolean           @default(true)
+  sortOrder  Int               @default(0)
+
+  // QRIS Static
+  qrisImage String?
+  qrisNote  String?
+
+  // QRIS Dynamic / API
+  provider    QrisProvider?
+  apiKey      String?
+  apiSecret   String?
+  apiEndpoint String?
+  merchantId  String?
+
+  // Bank Transfer
+  bankName      String?
+  accountNumber String?
+  accountName   String?
+
+  // E-wallet
+  walletNumber String?
+  walletName   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, type, name])
 }
