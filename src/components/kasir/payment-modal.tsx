@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { X, Loader2, QrCode } from "lucide-react";
-import { processPayment } from "@/actions/kasir";
+import { processPayment, confirmQrisPayment, checkPaymentStatus } from "@/actions/kasir";
 
 type OrderWithItems = {
   id: string;
@@ -58,6 +58,22 @@ export function PaymentModal({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  // QRIS state
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [pendingPaymentId, setPendingPaymentId] = useState<string | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const [isDynamicQris, setIsDynamicQris] = useState(false);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const expireTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear polling timers on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+      if (expireTimeoutRef.current) clearTimeout(expireTimeoutRef.current);
+    };
+  }, []);
+
   // Always show CASH first, then other methods
   const cashMethod: { id: string; type: string; name: string; qrisImage?: string | null; qrisNote?: string | null } = { id: "CASH", type: "CASH", name: "Tunai" };
   const otherMethods = paymentMethods.filter((m) => m.type !== "CASH");
@@ -77,15 +93,30 @@ export function PaymentModal({
     }
   };
 
+  const handleTabChange = (tab: string) => {
+    // Reset QRIS state when switching tabs
+    if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+    if (expireTimeoutRef.current) clearTimeout(expireTimeoutRef.current);
+    setQrUrl(null);
+    setPendingPaymentId(null);
+    setIsPolling(false);
+    setIsDynamicQris(false);
+    setError(null);
+    setActiveTab(tab);
+  };
+
   const handleProcessPayment = () => {
     setError(null);
     startTransition(async () => {
+      const activeMethod = allMethods.find((m) => m.type === activeTab);
+
       const paymentData: {
         orderId: string;
         employeeId: string;
         method: "CASH" | "QRIS" | "BANK_TRANSFER";
         cashEntered?: number;
         referenceNo?: string;
+        paymentMethodId?: string;
       } = {
         orderId: order.id,
         employeeId,
@@ -96,13 +127,71 @@ export function PaymentModal({
         paymentData.cashEntered = cashEntered;
       }
 
+      // Pass paymentMethodId for QRIS methods
+      if (activeTab === "QRIS" && activeMethod && activeMethod.id !== "CASH") {
+        paymentData.paymentMethodId = activeMethod.id;
+      }
+
       const result = await processPayment(paymentData);
 
       if (result.error) {
         setError(result.error);
-      } else if (result.payment) {
-        onSuccess((result.payment as { id: string }).id);
+        return;
       }
+
+      const paymentId = (result.payment as { id: string }).id;
+
+      if (result.qrUrl) {
+        setQrUrl(result.qrUrl);
+        setPendingPaymentId(paymentId);
+
+        // Dynamic QRIS: has externalId — poll for status
+        const dynamic = !!result.externalId;
+        setIsDynamicQris(dynamic);
+
+        if (dynamic) {
+          setIsPolling(true);
+
+          const interval = setInterval(async () => {
+            const statusResult = await checkPaymentStatus(paymentId);
+            if (statusResult.status === "PAID") {
+              clearInterval(interval);
+              pollingIntervalRef.current = null;
+              setIsPolling(false);
+              onSuccess(paymentId);
+            }
+          }, 3000);
+
+          pollingIntervalRef.current = interval;
+
+          // Auto-expire after 5 minutes
+          const expireTimeout = setTimeout(() => {
+            clearInterval(interval);
+            pollingIntervalRef.current = null;
+            setIsPolling(false);
+            setError("Waktu pembayaran habis. Silakan coba lagi.");
+          }, 5 * 60 * 1000);
+
+          expireTimeoutRef.current = expireTimeout;
+        }
+        // Static QRIS: wait for manual confirm — do not call onSuccess yet
+        return;
+      }
+
+      // CASH or immediate success
+      onSuccess(paymentId);
+    });
+  };
+
+  const handleConfirmStaticQris = () => {
+    if (!pendingPaymentId) return;
+    startTransition(async () => {
+      const result = await confirmQrisPayment(pendingPaymentId, employeeId);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      onSuccess(pendingPaymentId);
     });
   };
 
@@ -132,7 +221,7 @@ export function PaymentModal({
           {allMethods.map((method) => (
             <button
               key={method.type}
-              onClick={() => setActiveTab(method.type)}
+              onClick={() => handleTabChange(method.type)}
               className={`
                 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 cursor-pointer
                 ${
@@ -216,33 +305,72 @@ export function PaymentModal({
 
           {activeTab === "QRIS" && (
             <div className="space-y-4">
-              <div className="flex flex-col items-center justify-center py-6">
-                {activeMethod?.qrisImage ? (
+              {qrUrl ? (
+                /* QR code shown after processPayment returns qrUrl */
+                <div className="flex flex-col items-center gap-4">
                   <img
-                    src={activeMethod.qrisImage}
-                    alt="QRIS Code"
-                    className="w-48 h-48 object-contain"
+                    src={qrUrl}
+                    alt="QR Code"
+                    className="w-48 h-48 object-contain rounded-xl"
                   />
-                ) : (
-                  <div className="w-48 h-48 bg-slate-700 rounded-lg flex flex-col items-center justify-center">
-                    <QrCode className="w-16 h-16 text-slate-500 mb-2" />
-                    <p className="text-slate-400 text-xs text-center px-4">
-                      Upload QRIS di Settings
-                    </p>
-                  </div>
-                )}
-                <p className="text-slate-300 mt-4 text-sm">
-                  Scan untuk membayar
-                </p>
-                <p className="text-white font-bold text-2xl mt-1">
-                  {formatCurrency(order.totalAmount)}
-                </p>
-                {activeMethod?.qrisNote && (
-                  <p className="text-slate-400 text-xs mt-2 text-center">
-                    {activeMethod.qrisNote}
+                  <p className="text-2xl font-bold text-white">
+                    {formatCurrency(order.totalAmount)}
                   </p>
-                )}
-              </div>
+
+                  {isDynamicQris ? (
+                    /* Dynamic QRIS: polling mode */
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Menunggu pembayaran...</span>
+                      </div>
+                      <p className="text-slate-500 text-xs">Batas waktu: 5 menit</p>
+                    </div>
+                  ) : (
+                    /* Static QRIS: manual confirm button */
+                    <button
+                      onClick={handleConfirmStaticQris}
+                      disabled={isPending}
+                      className="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-xl py-3 font-bold transition-all duration-150 cursor-pointer disabled:opacity-50"
+                    >
+                      {isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                      ) : (
+                        "Konfirmasi Pembayaran Diterima"
+                      )}
+                    </button>
+                  )}
+                </div>
+              ) : (
+                /* Pre-process: show static QR preview from settings if available */
+                <div className="flex flex-col items-center justify-center py-6">
+                  {activeMethod?.qrisImage ? (
+                    <img
+                      src={activeMethod.qrisImage}
+                      alt="QRIS Code"
+                      className="w-48 h-48 object-contain"
+                    />
+                  ) : (
+                    <div className="w-48 h-48 bg-slate-700 rounded-lg flex flex-col items-center justify-center">
+                      <QrCode className="w-16 h-16 text-slate-500 mb-2" />
+                      <p className="text-slate-400 text-xs text-center px-4">
+                        Upload QRIS di Settings
+                      </p>
+                    </div>
+                  )}
+                  <p className="text-slate-300 mt-4 text-sm">
+                    Scan untuk membayar
+                  </p>
+                  <p className="text-white font-bold text-2xl mt-1">
+                    {formatCurrency(order.totalAmount)}
+                  </p>
+                  {activeMethod?.qrisNote && (
+                    <p className="text-slate-400 text-xs mt-2 text-center">
+                      {activeMethod.qrisNote}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -266,34 +394,36 @@ export function PaymentModal({
             </div>
           )}
 
-          {/* Action Button */}
-          <button
-            onClick={handleProcessPayment}
-            disabled={
-              isPending || (activeTab === "CASH" && !canProcessCash)
-            }
-            className={`
-              w-full mt-6 py-4 rounded-xl font-bold text-base transition-all duration-150 cursor-pointer active:scale-95
-              flex items-center justify-center gap-2
-              disabled:opacity-40 disabled:cursor-not-allowed
-              ${
-                activeTab === "CASH"
-                  ? "bg-green-600 hover:bg-green-500 text-white"
-                  : "bg-blue-600 hover:bg-blue-500 text-white"
+          {/* Action Button — hide when dynamic QRIS is polling or static QRIS confirm is shown */}
+          {!(activeTab === "QRIS" && qrUrl) && (
+            <button
+              onClick={handleProcessPayment}
+              disabled={
+                isPending || (activeTab === "CASH" && !canProcessCash)
               }
-            `}
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Memproses...
-              </>
-            ) : activeTab === "CASH" ? (
-              "PROSES PEMBAYARAN"
-            ) : (
-              "KONFIRMASI PEMBAYARAN DITERIMA"
-            )}
-          </button>
+              className={`
+                w-full mt-6 py-4 rounded-xl font-bold text-base transition-all duration-150 cursor-pointer active:scale-95
+                flex items-center justify-center gap-2
+                disabled:opacity-40 disabled:cursor-not-allowed
+                ${
+                  activeTab === "CASH"
+                    ? "bg-green-600 hover:bg-green-500 text-white"
+                    : "bg-blue-600 hover:bg-blue-500 text-white"
+                }
+              `}
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Memproses...
+                </>
+              ) : activeTab === "CASH" ? (
+                "PROSES PEMBAYARAN"
+              ) : (
+                "PROSES PEMBAYARAN"
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
