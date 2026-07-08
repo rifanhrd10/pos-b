@@ -427,53 +427,213 @@ export async function processPayment(data: {
   method: "CASH" | "QRIS" | "BANK_TRANSFER";
   cashEntered?: number;
   referenceNo?: string;
-}): Promise<{ payment?: unknown; error?: string }> {
-  const order = await prisma.order.findUnique({
-    where: { id: data.orderId },
-    select: {
-      id: true,
-      status: true,
-      totalAmount: true,
-      businessId: true,
-      outletId: true,
-    },
-  });
-  if (!order) return { error: "Order tidak ditemukan" };
-  if (order.status !== "DRAFT" && order.status !== "ACTIVE") {
-    return { error: "Order tidak dalam status yang bisa dibayar" };
-  }
-
-  if (data.method === "CASH") {
-    if (!data.cashEntered || data.cashEntered < order.totalAmount) {
-      return { error: "Uang yang diterima kurang" };
+  paymentMethodId?: string;
+}): Promise<{ payment?: unknown; qrUrl?: string; externalId?: string; error?: string }> {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: data.orderId },
+      select: {
+        id: true,
+        status: true,
+        totalAmount: true,
+        businessId: true,
+        outletId: true,
+        orderNumber: true,
+      },
+    });
+    if (!order) return { error: "Order tidak ditemukan" };
+    if (order.status !== "DRAFT" && order.status !== "ACTIVE") {
+      return { error: "Order tidak dalam status yang bisa dibayar" };
     }
+
+    // CASH: Mark as PAID immediately
+    if (data.method === "CASH") {
+      if (!data.cashEntered || data.cashEntered < order.totalAmount) {
+        return { error: "Uang yang diterima kurang" };
+      }
+
+      const changeAmount = data.cashEntered - order.totalAmount;
+
+      const payment = await prisma.payment.create({
+        data: {
+          orderId: data.orderId,
+          businessId: order.businessId,
+          outletId: order.outletId,
+          employeeId: data.employeeId,
+          method: data.method,
+          totalAmount: order.totalAmount,
+          cashEntered: data.cashEntered,
+          changeAmount,
+          referenceNo: data.referenceNo,
+          status: "PAID",
+        },
+      });
+
+      await prisma.order.update({
+        where: { id: data.orderId },
+        data: { status: "PAID", paidAt: new Date() },
+      });
+
+      return { payment };
+    }
+
+    // QRIS with paymentMethodId
+    if (data.method === "QRIS" && data.paymentMethodId) {
+      const paymentMethod = await prisma.paymentMethod.findUnique({
+        where: { id: data.paymentMethodId },
+        select: { provider: true, apiKey: true, apiSecret: true, qrisImage: true },
+      });
+
+      // Gateway-based QRIS Dynamic (MIDTRANS or XENDIT)
+      if (
+        paymentMethod?.apiKey &&
+        paymentMethod.provider &&
+        paymentMethod.provider !== "CUSTOM"
+      ) {
+        const { createMidtransTransaction, createXenditInvoice } = await import(
+          "@/lib/payment-gateway"
+        );
+
+        const business = await prisma.business.findUnique({
+          where: { id: order.businessId },
+          select: { email: true, name: true },
+        });
+
+        const customerEmail = business?.email ?? "pos@bayaro.id";
+        const customerName = business?.name ?? "POS";
+
+        let result;
+        if (paymentMethod.provider === "MIDTRANS") {
+          result = await createMidtransTransaction({
+            provider: "MIDTRANS",
+            orderNumber: order.orderNumber,
+            amount: order.totalAmount,
+            customerName,
+            customerEmail,
+            apiKey: paymentMethod.apiKey,
+            apiSecret: paymentMethod.apiSecret ?? undefined,
+            sandbox: true,
+          });
+        } else if (paymentMethod.provider === "XENDIT") {
+          result = await createXenditInvoice({
+            provider: "XENDIT",
+            orderNumber: order.orderNumber,
+            amount: order.totalAmount,
+            customerName,
+            customerEmail,
+            apiKey: paymentMethod.apiKey,
+            apiSecret: paymentMethod.apiSecret ?? undefined,
+            sandbox: true,
+          });
+        } else {
+          return { error: "Provider tidak didukung" };
+        }
+
+        const payment = await prisma.payment.create({
+          data: {
+            orderId: data.orderId,
+            businessId: order.businessId,
+            outletId: order.outletId,
+            employeeId: data.employeeId,
+            method: data.method,
+            totalAmount: order.totalAmount,
+            referenceNo: data.referenceNo,
+            status: "PENDING",
+            externalId: result.externalId,
+            qrUrl: result.qrUrl,
+          },
+        });
+
+        // Do NOT mark Order as PAID yet — webhook will update it
+        return { payment, qrUrl: result.qrUrl, externalId: result.externalId };
+      }
+
+      // QRIS Static (CUSTOM provider or no API key)
+      const payment = await prisma.payment.create({
+        data: {
+          orderId: data.orderId,
+          businessId: order.businessId,
+          outletId: order.outletId,
+          employeeId: data.employeeId,
+          method: data.method,
+          totalAmount: order.totalAmount,
+          referenceNo: data.referenceNo,
+          status: "PENDING",
+          qrUrl: paymentMethod?.qrisImage ?? undefined,
+        },
+      });
+
+      // Do NOT mark Order as PAID yet
+      return { payment, qrUrl: paymentMethod?.qrisImage ?? undefined };
+    }
+
+    // BANK_TRANSFER or QRIS without paymentMethodId
+    const payment = await prisma.payment.create({
+      data: {
+        orderId: data.orderId,
+        businessId: order.businessId,
+        outletId: order.outletId,
+        employeeId: data.employeeId,
+        method: data.method,
+        totalAmount: order.totalAmount,
+        referenceNo: data.referenceNo,
+        status: "PENDING",
+      },
+    });
+
+    // Do NOT mark Order as PAID yet
+    return { payment };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { error: `Gagal memproses pembayaran: ${message}` };
   }
+}
 
-  const changeAmount =
-    data.method === "CASH" && data.cashEntered
-      ? data.cashEntered - order.totalAmount
-      : 0;
+export async function confirmQrisPayment(
+  paymentId: string,
+  employeeId: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      select: { orderId: true, status: true, employeeId: true },
+    });
 
-  const payment = await prisma.payment.create({
-    data: {
-      orderId: data.orderId,
-      businessId: order.businessId,
-      outletId: order.outletId,
-      employeeId: data.employeeId,
-      method: data.method,
-      totalAmount: order.totalAmount,
-      cashEntered: data.cashEntered,
-      changeAmount,
-      referenceNo: data.referenceNo,
-    },
-  });
+    if (!payment) return { ok: false, error: "Payment tidak ditemukan" };
+    if (payment.status === "PAID") return { ok: false, error: "Payment sudah dibayar" };
 
-  await prisma.order.update({
-    where: { id: data.orderId },
-    data: { status: "PAID", paidAt: new Date() },
-  });
+    await prisma.payment.update({
+      where: { id: paymentId },
+      data: { status: "PAID" },
+    });
 
-  return { payment };
+    await prisma.order.update({
+      where: { id: payment.orderId },
+      data: { status: "PAID", paidAt: new Date() },
+    });
+
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: `Gagal konfirmasi payment: ${message}` };
+  }
+}
+
+export async function checkPaymentStatus(
+  paymentId: string
+): Promise<{ status: string; error?: string }> {
+  try {
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      select: { status: true },
+    });
+
+    if (!payment) return { status: "NOT_FOUND", error: "Payment tidak ditemukan" };
+    return { status: payment.status };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { status: "ERROR", error: message };
+  }
 }
 
 // ─── Products for POS ─────────────────────────────────────────
