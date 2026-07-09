@@ -40,11 +40,10 @@ export type NavSection = {
 
 export const navItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
-  { href: "/kasir", label: "POS Kasir", icon: Store, permission: "pos.access" },
-  { href: "/kasir/orders", label: "Riwayat Order", icon: ShoppingBag, permission: "pos.access" },
+  { href: "/pos", label: "POS Kasir", icon: Store, permission: "pos.access" },
   { href: "/shifts", label: "Shift Kasir", icon: Clock, permission: "pos.close_shift" },
   { href: "/products", label: "Daftar Produk", icon: LayoutGrid, permission: "products.view" },
-  { href: "/products/categories", label: "Kategori", icon: Tag, permission: "products.view" },
+  { href: "/categories", label: "Kategori", icon: Tag, permission: "products.view" },
   { href: "/products/new", label: "Tambah Produk", icon: ShoppingBag, permission: "products.manage" },
   { href: "/inventory", label: "Stok Overview", icon: Boxes, permission: "inventory.view" },
   { href: "/inventory/low-stock", label: "Stok Rendah", icon: TrendingDown, permission: "inventory.view" },
@@ -79,12 +78,12 @@ export const navSections: NavSection[] = [
   {
     label: "POS Kasir",
     description: "Transaksi dan shift kasir.",
-    items: ["/kasir", "/kasir/orders", "/shifts"],
+    items: ["/pos", "/shifts"],
   },
   {
     label: "Produk",
     description: "Kelola produk dan kategori.",
-    items: ["/products", "/products/categories"],
+    items: ["/products", "/categories"],
   },
   {
     label: "Inventori",

@@ -165,33 +165,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-10">
-            <div aria-hidden="true" className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-outline-variant/60"></div>
-            </div>
-            <div className="relative flex justify-center text-label-md uppercase tracking-widest font-label-md">
-              <span className="bg-surface-container-lowest px-4 text-outline/60">Pilih Akun Demo</span>
-            </div>
-          </div>
-
-          {/* Demo Accounts */}
-          <div className="grid grid-cols-3 gap-2 p-1.5 bg-surface-container rounded-2xl mb-8">
-            <button type="button" onClick={() => handleDemo('admin')} className="demo-card-hover flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl bg-surface-container-lowest text-primary custom-shadow transition-all group">
-              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>admin_panel_settings</span>
-              <span className="font-bold text-[13px] tracking-tight">Admin</span>
-            </button>
-            <button type="button" onClick={() => handleDemo('kasir')} className="demo-card-hover flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl text-on-surface-variant hover:bg-surface-container-lowest hover:text-primary transition-all group focus:bg-surface-container-lowest focus:text-primary focus:shadow-sm">
-              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 0" }}>point_of_sale</span>
-              <span className="font-semibold text-[13px] tracking-tight">Kasir</span>
-            </button>
-            <button type="button" onClick={() => handleDemo('manager')} className="demo-card-hover flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl text-on-surface-variant hover:bg-surface-container-lowest hover:text-primary transition-all group focus:bg-surface-container-lowest focus:text-primary focus:shadow-sm">
-              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 0" }}>group</span>
-              <span className="font-semibold text-[13px] tracking-tight">Manajer</span>
-            </button>
-          </div>
-
-          <div className="text-center">
+          <div className="text-center mt-6">
             <p className="font-body-md text-body-md text-on-surface-variant">
               Belum punya akun? <Link className="text-secondary font-semibold hover:underline" href="/register">Daftar Gratis Sekarang</Link>
             </p>
