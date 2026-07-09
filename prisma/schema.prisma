@@ -517,9 +517,11 @@ model CashierSession {
   employeeId  String
   openedAt    DateTime  @default(now())
   closedAt    DateTime?
-  initialCash Float     @default(0)
-  closingCash Float?
-  isOpen      Boolean   @default(true)
+  initialCash   Float     @default(0)
+  closingCash   Float?
+  expectedCash  Float?   // opening + cashSales during shift
+  difference    Float?   // closingCash - expectedCash (positive=surplus, negative=deficit)
+  isOpen        Boolean   @default(true)
   note        String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

@@ -3,6 +3,7 @@ import {
   Bell,
   Calendar,
   BarChart3,
+  Clock,
   CreditCard,
   FileText,
   FolderOpen,
@@ -78,6 +79,7 @@ export const navItems: NavItem[] = [
   { href: "/reports/products", label: "Produk Terlaris", icon: ShoppingBag, permission: "settings.manage" },
   { href: "/reports/cashier", label: "Per Kasir", icon: Users, permission: "settings.manage" },
   { href: "/reports/inventory", label: "Inventori", icon: Package, permission: "settings.manage" },
+  { href: "/shifts", label: "Shift Kasir", icon: Clock, permission: "reports.view" },
 ];
 
 export const navSections: NavSection[] = [
@@ -120,6 +122,7 @@ export const navSections: NavSection[] = [
       "/reports/products",
       "/reports/cashier",
       "/reports/inventory",
+      "/shifts",
     ],
   },
   {

@@ -140,12 +140,32 @@ export async function openSession(data: {
 export async function closeSession(
   sessionId: string,
   data: { closingCash: number; note?: string }
-): Promise<{ ok: boolean; summary?: ShiftSummary; error?: string }> {
+): Promise<{
+  ok: boolean;
+  summary?: ShiftSummary;
+  expectedCash?: number;
+  difference?: number;
+  cashSales?: number;
+  error?: string;
+}> {
   const session = await prisma.cashierSession.findUnique({
     where: { id: sessionId },
   });
   if (!session) return { ok: false, error: "Sesi tidak ditemukan" };
   if (!session.isOpen) return { ok: false, error: "Sesi sudah ditutup" };
+
+  // Fetch all PAID orders in this session to compute cash sales
+  const paidOrders = await prisma.order.findMany({
+    where: { cashierSessionId: sessionId, status: "PAID" },
+    include: { payment: true },
+  });
+
+  const cashSales = paidOrders
+    .filter((o) => o.payment?.method.toUpperCase() === "CASH")
+    .reduce((sum, o) => sum + o.totalAmount, 0);
+
+  const expectedCash = session.initialCash + cashSales;
+  const difference = data.closingCash - expectedCash;
 
   await prisma.cashierSession.update({
     where: { id: sessionId },
@@ -154,11 +174,42 @@ export async function closeSession(
       closedAt: new Date(),
       closingCash: data.closingCash,
       note: data.note,
+      expectedCash,
+      difference,
     },
   });
 
   const summary = await getShiftSummary(sessionId);
-  return { ok: true, summary };
+  return { ok: true, summary, expectedCash, difference, cashSales };
+}
+
+export async function previewShiftClose(
+  sessionId: string
+): Promise<{
+  ok: boolean;
+  initialCash?: number;
+  cashSales?: number;
+  expectedCash?: number;
+  error?: string;
+}> {
+  const session = await prisma.cashierSession.findUnique({
+    where: { id: sessionId },
+    select: { initialCash: true, isOpen: true },
+  });
+  if (!session) return { ok: false, error: "Sesi tidak ditemukan" };
+
+  const paidOrders = await prisma.order.findMany({
+    where: { cashierSessionId: sessionId, status: "PAID" },
+    include: { payment: { select: { method: true } } },
+  });
+
+  const cashSales = paidOrders
+    .filter((o) => o.payment?.method.toUpperCase() === "CASH")
+    .reduce((sum, o) => sum + o.totalAmount, 0);
+
+  const expectedCash = session.initialCash + cashSales;
+
+  return { ok: true, initialCash: session.initialCash, cashSales, expectedCash };
 }
 
 // ─── Tables ────────────────────────────────────────────────────

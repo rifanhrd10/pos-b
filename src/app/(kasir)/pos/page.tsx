@@ -16,17 +16,39 @@ import { PosClient } from "./pos-client";
 export const dynamic = "force-dynamic";
 
 export default async function PosPage() {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
-
   const employeeId = await getKasirEmployeeId();
   const outletId = await getKasirOutletId();
+
+  // Try NextAuth session (owner/manager flow)
+  const session = await auth();
+
+  // Mode A: Kasir public cookie (no NextAuth needed)
+  // Mode B: NextAuth session (owner/manager flow)
+  // Kasir cookie takes priority if both exist
+  const isKasirMode = !!(employeeId && outletId);
+  const isSessionMode = !!(session?.user);
+
+  if (!isKasirMode && !isSessionMode) {
+    redirect("/login");
+  }
 
   if (!employeeId || !outletId) {
     redirect("/kasir/pin");
   }
 
-  const employee = await getEmployeeByUserId(session.user.id as string);
+  let employee: { id: string; name: string } | null = null;
+
+  if (isKasirMode) {
+    // Kasir cookie mode: look up employee directly by ID
+    employee = await prisma.employee.findUnique({
+      where: { id: employeeId, isActive: true },
+      select: { id: true, name: true },
+    });
+  } else if (isSessionMode) {
+    // NextAuth session mode: look up employee by userId
+    employee = await getEmployeeByUserId(session!.user!.id as string);
+  }
+
   if (!employee) {
     redirect("/kasir/pin");
   }
@@ -44,12 +66,12 @@ export default async function PosPage() {
 
   const business = await prisma.business.findUnique({
     where: { id: outlet.businessId },
-    select: { 
+    select: {
       name: true,
       address: true,
       phone: true,
-      taxRate: true, 
-      serviceRate: true 
+      taxRate: true,
+      serviceRate: true,
     },
   });
 

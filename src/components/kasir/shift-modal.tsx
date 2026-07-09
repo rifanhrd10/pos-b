@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { X, DollarSign } from "lucide-react";
-import { openSession, closeSession, type ShiftSummary } from "@/actions/kasir";
+import { X, DollarSign, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { openSession, closeSession, previewShiftClose, type ShiftSummary } from "@/actions/kasir";
 
 interface ShiftModalProps {
   mode: "open" | "close";
@@ -13,6 +13,12 @@ interface ShiftModalProps {
   summary?: ShiftSummary;
   onSuccess: (sessionId?: string) => void;
   onCancel?: () => void;
+}
+
+interface ReconciliationPreview {
+  initialCash: number;
+  cashSales: number;
+  expectedCash: number;
 }
 
 export function ShiftModal({
@@ -28,7 +34,10 @@ export function ShiftModal({
   const [initialCash, setInitialCash] = useState(0);
   const [closingCash, setClosingCash] = useState(0);
   const [isPending, startTransition] = useTransition();
+  const [isLoadingPreview, startPreviewTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<ReconciliationPreview | null>(null);
+  const [showReconciliation, setShowReconciliation] = useState(false);
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -55,12 +64,29 @@ export function ShiftModal({
     });
   };
 
-  const handleCloseShift = () => {
+  const handlePreviewClose = () => {
+    if (!sessionId) return;
+    setError(null);
+    startPreviewTransition(async () => {
+      const result = await previewShiftClose(sessionId);
+      if (!result.ok) {
+        setError(result.error || "Gagal memuat preview");
+        return;
+      }
+      setPreview({
+        initialCash: result.initialCash ?? 0,
+        cashSales: result.cashSales ?? 0,
+        expectedCash: result.expectedCash ?? 0,
+      });
+      setShowReconciliation(true);
+    });
+  };
+
+  const handleConfirmClose = () => {
     if (!sessionId) return;
     setError(null);
     startTransition(async () => {
       const result = await closeSession(sessionId, { closingCash });
-
       if (!result.ok) {
         setError(result.error || "Gagal menutup shift");
       } else {
@@ -69,7 +95,16 @@ export function ShiftModal({
     });
   };
 
+  const handleBackToInput = () => {
+    setShowReconciliation(false);
+    setPreview(null);
+  };
+
   const quickAmounts = [0, 100000, 200000, 500000];
+
+  const difference = preview ? closingCash - preview.expectedCash : 0;
+  const isPositive = difference >= 0;
+  const isZero = difference === 0;
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -83,7 +118,7 @@ export function ShiftModal({
             <button
               onClick={onCancel}
               className="text-slate-400 hover:text-slate-50 transition-colors"
-              disabled={isPending}
+              disabled={isPending || isLoadingPreview}
             >
               <X className="w-6 h-6" />
             </button>
@@ -107,7 +142,7 @@ export function ShiftModal({
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                   type="text"
-                  value={initialCash === 0 ? "" : formatCurrency(initialCash).replace(/[^\d]/g, "")}
+                  value={initialCash === 0 ? "" : initialCash.toString()}
                   onChange={(e) => {
                     const val = e.target.value.replace(/\D/g, "");
                     setInitialCash(val ? parseInt(val, 10) : 0);
@@ -124,24 +159,22 @@ export function ShiftModal({
               <div className="mt-3 text-slate-300 text-sm font-medium">
                 {formatCurrency(initialCash)}
               </div>
-            </div>
-
-            {/* Quick amounts */}
-            <div className="grid grid-cols-4 gap-2 mb-6">
-              {quickAmounts.map((amount) => (
-                <button
-                  key={amount}
-                  onClick={() => setInitialCash(amount)}
-                  className="
-                    px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300
-                    rounded-lg text-xs font-medium transition-all duration-150
-                    cursor-pointer active:scale-95
-                  "
-                  disabled={isPending}
-                >
-                  {amount === 0 ? "Rp 0" : `Rp ${(amount / 1000).toFixed(0)}k`}
-                </button>
-              ))}
+              <div className="mt-3 flex gap-2">
+                {quickAmounts.map((amount) => (
+                  <button
+                    key={amount}
+                    onClick={() => setInitialCash(amount)}
+                    disabled={isPending}
+                    className="
+                      flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300
+                      text-xs rounded-lg transition-colors cursor-pointer
+                      disabled:opacity-50 disabled:cursor-not-allowed
+                    "
+                  >
+                    {amount === 0 ? "Rp 0" : `${amount / 1000}rb`}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <button
@@ -156,40 +189,115 @@ export function ShiftModal({
               {isPending ? "Membuka..." : "Buka Shift"}
             </button>
           </>
+        ) : showReconciliation && preview ? (
+          <>
+            {/* Reconciliation summary */}
+            <div className="mb-6 rounded-xl border border-slate-600 overflow-hidden">
+              <div className="bg-slate-700/50 px-4 py-3 border-b border-slate-600">
+                <h3 className="text-slate-200 font-semibold text-sm">Ringkasan Shift</h3>
+              </div>
+              <div className="divide-y divide-slate-700">
+                <div className="flex justify-between items-center px-4 py-3">
+                  <span className="text-slate-400 text-sm">Kas Awal</span>
+                  <span className="text-slate-200 text-sm font-medium">
+                    {formatCurrency(preview.initialCash)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center px-4 py-3">
+                  <span className="text-slate-400 text-sm">Penjualan Cash</span>
+                  <span className="text-slate-200 text-sm font-medium">
+                    {formatCurrency(preview.cashSales)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center px-4 py-3 bg-slate-700/30">
+                  <span className="text-slate-300 text-sm font-semibold">Expected di Laci</span>
+                  <span className="text-slate-50 text-sm font-bold">
+                    {formatCurrency(preview.expectedCash)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center px-4 py-3">
+                  <span className="text-slate-400 text-sm">Kas Aktual (input)</span>
+                  <span className="text-slate-200 text-sm font-medium">
+                    {formatCurrency(closingCash)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center px-4 py-3 bg-slate-700/30">
+                  <span className="text-slate-300 text-sm font-semibold">Selisih</span>
+                  <div className="flex items-center gap-2">
+                    {isZero ? (
+                      <Minus className="w-4 h-4 text-slate-400" />
+                    ) : isPositive ? (
+                      <TrendingUp className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <TrendingDown className="w-4 h-4 text-red-400" />
+                    )}
+                    <div className="text-right">
+                      <div
+                        className={`text-sm font-bold ${
+                          isZero
+                            ? "text-slate-300"
+                            : isPositive
+                            ? "text-emerald-400"
+                            : "text-red-400"
+                        }`}
+                      >
+                        {isPositive && !isZero ? "+" : ""}
+                        {formatCurrency(difference)}
+                      </div>
+                      <div
+                        className={`text-xs ${
+                          isZero
+                            ? "text-slate-500"
+                            : isPositive
+                            ? "text-emerald-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {isZero ? "seimbang" : isPositive ? "surplus" : "deficit"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleBackToInput}
+                disabled={isPending}
+                className="
+                  flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold
+                  rounded-xl transition-all duration-150 cursor-pointer active:scale-95
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                "
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleConfirmClose}
+                disabled={isPending}
+                className="
+                  flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold
+                  rounded-xl transition-all duration-150 cursor-pointer active:scale-95
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                "
+              >
+                {isPending ? "Menutup..." : "Konfirmasi Tutup Shift"}
+              </button>
+            </div>
+          </>
         ) : (
           <>
-            {/* Close mode */}
-            {summary && (
-              <div className="mb-6 space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Total Transaksi</span>
-                  <span className="text-slate-50 font-medium">{summary.totalOrders}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Total Omset</span>
-                  <span className="text-slate-50 font-medium">{formatCurrency(summary.totalRevenue)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Cash</span>
-                  <span className="text-slate-50 font-medium">{formatCurrency(summary.cashRevenue)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">QRIS</span>
-                  <span className="text-slate-50 font-medium">{formatCurrency(summary.qrisRevenue)}</span>
-                </div>
-                <div className="h-px bg-slate-700 my-3" />
-              </div>
-            )}
-
+            {/* Close mode — cash input */}
             <div className="mb-6">
               <label className="block text-slate-300 text-sm font-medium mb-3">
-                Kas Akhir (aktual)
+                Kas Aktual di Laci
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                   type="text"
-                  value={closingCash === 0 ? "" : formatCurrency(closingCash).replace(/[^\d]/g, "")}
+                  value={closingCash === 0 ? "" : closingCash.toString()}
                   onChange={(e) => {
                     const val = e.target.value.replace(/\D/g, "");
                     setClosingCash(val ? parseInt(val, 10) : 0);
@@ -200,7 +308,7 @@ export function ShiftModal({
                     rounded-xl text-slate-50 placeholder-slate-400
                     focus:outline-none focus:ring-2 focus:ring-blue-500
                   "
-                  disabled={isPending}
+                  disabled={isPending || isLoadingPreview}
                 />
               </div>
               <div className="mt-3 text-slate-300 text-sm font-medium">
@@ -209,15 +317,15 @@ export function ShiftModal({
             </div>
 
             <button
-              onClick={handleCloseShift}
-              disabled={isPending}
+              onClick={handlePreviewClose}
+              disabled={isPending || isLoadingPreview}
               className="
                 w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold
                 rounded-xl transition-all duration-150 cursor-pointer active:scale-95
                 disabled:opacity-50 disabled:cursor-not-allowed
               "
             >
-              {isPending ? "Menutup..." : "Tutup Shift"}
+              {isLoadingPreview ? "Memuat..." : "Tutup Shift"}
             </button>
           </>
         )}

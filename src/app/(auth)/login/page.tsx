@@ -196,6 +196,24 @@ export default function LoginPage() {
               Belum punya akun? <Link className="text-secondary font-semibold hover:underline" href="/register">Daftar Gratis Sekarang</Link>
             </p>
           </div>
+
+          {/* Kasir Entry */}
+          <div className="relative my-6">
+            <div aria-hidden="true" className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-outline-variant/40"></div>
+            </div>
+            <div className="relative flex justify-center text-label-md uppercase tracking-widest font-label-md">
+              <span className="bg-surface-container-lowest px-4 text-outline/50">atau</span>
+            </div>
+          </div>
+
+          <Link
+            href="/kasir/enter"
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border-2 border-outline-variant hover:border-primary text-on-surface-variant hover:text-primary font-semibold transition-all duration-150 active:scale-[0.98]"
+          >
+            <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 0" }}>point_of_sale</span>
+            Masuk sebagai Kasir
+          </Link>
         </div>
 
         {/* Footer Mobile */}
