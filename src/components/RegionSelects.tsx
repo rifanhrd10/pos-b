@@ -27,22 +27,109 @@ export default function RegionSelects() {
   const [loadingDistrict, setLoadingDistrict] = useState(false);
   const [loadingVillage, setLoadingVillage] = useState(false);
 
+  // Load provinces on mount
   useEffect(() => {
     fetch("/api/wilayah/provinces.json")
       .then((res) => res.json())
       .then((data) => {
         if (data && data.data) {
-          setProvinces(
-            data.data.map((item: any) => ({
-              value: item.code,
-              label: item.name,
-            }))
-          );
+          const provinceOptions = data.data.map((item: any) => ({
+            value: item.code,
+            label: item.name,
+          }));
+          setProvinces(provinceOptions);
+          
+          // Restore saved province if exists
+          if (business.province) {
+            const savedProv = provinceOptions.find((p: Option) => p.label === business.province);
+            if (savedProv) {
+              setSelectedProvince(savedProv);
+              // Trigger cascade load for city/district/village
+              loadRegencies(savedProv.value);
+            }
+          }
         }
       })
       .catch((err) => console.error(err))
       .finally(() => setLoadingProvince(false));
   }, []);
+  
+  // Helper: load regencies and restore saved city
+  const loadRegencies = (provinceCode: string) => {
+    setLoadingRegency(true);
+    fetch(`/api/wilayah/regencies/${provinceCode}.json`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.data) {
+          const regencyOptions = data.data.map((item: any) => ({
+            value: item.code,
+            label: item.name,
+          }));
+          setRegencies(regencyOptions);
+          
+          // Restore saved city if exists
+          if (business.city) {
+            const savedCity = regencyOptions.find((c: Option) => c.label === business.city);
+            if (savedCity) {
+              setSelectedRegency(savedCity);
+              loadDistricts(savedCity.value);
+            }
+          }
+        }
+      })
+      .finally(() => setLoadingRegency(false));
+  };
+  
+  // Helper: load districts and restore saved district
+  const loadDistricts = (regencyCode: string) => {
+    setLoadingDistrict(true);
+    fetch(`/api/wilayah/districts/${regencyCode}.json`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.data) {
+          const districtOptions = data.data.map((item: any) => ({
+            value: item.code,
+            label: item.name,
+          }));
+          setDistricts(districtOptions);
+          
+          // Restore saved district if exists
+          if (business.district) {
+            const savedDistrict = districtOptions.find((d: Option) => d.label === business.district);
+            if (savedDistrict) {
+              setSelectedDistrict(savedDistrict);
+              loadVillages(savedDistrict.value);
+            }
+          }
+        }
+      })
+      .finally(() => setLoadingDistrict(false));
+  };
+  
+  // Helper: load villages and restore saved village
+  const loadVillages = (districtCode: string) => {
+    setLoadingVillage(true);
+    fetch(`/api/wilayah/villages/${districtCode}.json`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.data) {
+          const villageOptions = data.data.map((item: any) => ({
+            value: item.code,
+            label: item.name,
+          }));
+          setVillages(villageOptions);
+          
+          // Restore saved village if exists
+          if (business.subdistrict) {
+            const savedVillage = villageOptions.find((v: Option) => v.label === business.subdistrict);
+            if (savedVillage) {
+              setSelectedVillage(savedVillage);
+            }
+          }
+        }
+      })
+      .finally(() => setLoadingVillage(false));
+  };
 
   const handleProvinceChange = (option: Option | null) => {
     setSelectedProvince(option);
@@ -55,23 +142,7 @@ export default function RegionSelects() {
     
     if (option) {
       setBusiness({ province: option.label });
-    }
-
-    if (option) {
-      setLoadingRegency(true);
-      fetch(`/api/wilayah/regencies/${option.value}.json`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data && data.data) {
-            setRegencies(
-              data.data.map((item: any) => ({
-                value: item.code,
-                label: item.name,
-              }))
-            );
-          }
-        })
-        .finally(() => setLoadingRegency(false));
+      loadRegencies(option.value);
     }
   };
 
@@ -84,23 +155,7 @@ export default function RegionSelects() {
     
     if (option) {
       setBusiness({ city: option.label });
-    }
-
-    if (option) {
-      setLoadingDistrict(true);
-      fetch(`/api/wilayah/districts/${option.value}.json`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data && data.data) {
-            setDistricts(
-              data.data.map((item: any) => ({
-                value: item.code,
-                label: item.name,
-              }))
-            );
-          }
-        })
-        .finally(() => setLoadingDistrict(false));
+      loadDistricts(option.value);
     }
   };
 
@@ -111,23 +166,7 @@ export default function RegionSelects() {
     
     if (option) {
       setBusiness({ district: option.label });
-    }
-
-    if (option) {
-      setLoadingVillage(true);
-      fetch(`/api/wilayah/villages/${option.value}.json`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data && data.data) {
-            setVillages(
-              data.data.map((item: any) => ({
-                value: item.code,
-                label: item.name,
-              }))
-            );
-          }
-        })
-        .finally(() => setLoadingVillage(false));
+      loadVillages(option.value);
     }
   };
 
