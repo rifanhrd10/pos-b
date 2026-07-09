@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatRp, formatDate, timeAgo } from "@/lib/format";
+import { ExportExcelButton } from "@/components/shared/export-excel-button";
 
 export default async function CustomersPage({
   searchParams,
@@ -41,12 +42,31 @@ export default async function CustomersPage({
           <h1 className="text-2xl font-bold text-slate-900">Pelanggan</h1>
           <p className="text-sm text-slate-500">Kelola data pelanggan Anda</p>
         </div>
-        <Link href="/customers/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Tambah Pelanggan
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <ExportExcelButton
+            data={customers.map((c) => ({
+              name: c.name,
+              phone: c.phone ?? "-",
+              email: c.email ?? "-",
+              totalVisits: c.totalVisits,
+              totalSpent: c.totalSpent,
+            }))}
+            filename="pelanggan"
+            columns={[
+              { key: "name", label: "Nama" },
+              { key: "phone", label: "No. HP" },
+              { key: "email", label: "Email" },
+              { key: "totalVisits", label: "Total Kunjungan" },
+              { key: "totalSpent", label: "Total Belanja" },
+            ]}
+          />
+          <Link href="/customers/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Tambah Pelanggan
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-soft">

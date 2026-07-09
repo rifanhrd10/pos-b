@@ -445,6 +445,7 @@ export async function processPayment(data: {
         businessId: true,
         outletId: true,
         orderNumber: true,
+        customerId: true,
       },
     });
     if (!order) return { error: "Order tidak ditemukan" };
@@ -479,6 +480,23 @@ export async function processPayment(data: {
         where: { id: data.orderId },
         data: { status: "PAID", paidAt: new Date() },
       });
+
+      // Update customer stats if order has a customer
+      if (order.customerId) {
+        const paidOrders = await prisma.order.findMany({
+          where: { customerId: order.customerId, status: "PAID" },
+          select: { totalAmount: true, createdAt: true },
+          orderBy: { createdAt: "desc" },
+        });
+        await prisma.customer.update({
+          where: { id: order.customerId },
+          data: {
+            totalVisits: paidOrders.length,
+            totalSpent: paidOrders.reduce((sum, o) => sum + o.totalAmount, 0),
+            lastVisit: paidOrders[0]?.createdAt ?? null,
+          },
+        });
+      }
 
       return { payment };
     }
@@ -617,6 +635,27 @@ export async function confirmQrisPayment(
       where: { id: payment.orderId },
       data: { status: "PAID", paidAt: new Date() },
     });
+
+    // Update customer stats if order has a customer
+    const paidOrder = await prisma.order.findUnique({
+      where: { id: payment.orderId },
+      select: { customerId: true },
+    });
+    if (paidOrder?.customerId) {
+      const paidOrders = await prisma.order.findMany({
+        where: { customerId: paidOrder.customerId, status: "PAID" },
+        select: { totalAmount: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+      });
+      await prisma.customer.update({
+        where: { id: paidOrder.customerId },
+        data: {
+          totalVisits: paidOrders.length,
+          totalSpent: paidOrders.reduce((sum, o) => sum + o.totalAmount, 0),
+          lastVisit: paidOrders[0]?.createdAt ?? null,
+        },
+      });
+    }
 
     return { ok: true };
   } catch (err) {

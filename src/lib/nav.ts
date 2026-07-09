@@ -72,6 +72,7 @@ export const navItems: NavItem[] = [
   { href: "/inventory/transfers", label: "Transfer", icon: Package, permission: "inventory.view" },
   { href: "/inventory/opname", label: "Stok Opname", icon: Package, permission: "inventory.view" },
   { href: "/kasir", label: "POS Kasir", icon: Store, permission: "pos.access" },
+  { href: "/customers", label: "Pelanggan", icon: Users, permission: "settings.manage" },
   { href: "/promos", label: "Promo & Diskon", icon: Tag, permission: "settings.manage" },
   { href: "/reports/sales", label: "Penjualan", icon: BarChart2, permission: "settings.manage" },
   { href: "/reports/products", label: "Produk Terlaris", icon: ShoppingBag, permission: "settings.manage" },
@@ -109,7 +110,7 @@ export const navSections: NavSection[] = [
   {
     label: "Penjualan",
     description: "Kelola promo, voucher, dan diskon.",
-    items: ["/promos"],
+    items: ["/promos", "/customers"],
   },
   {
     label: "Laporan",
