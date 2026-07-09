@@ -1,24 +1,32 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { BayaroLogo } from "@/components/shared/logo";
-import { OnboardingStepper } from "@/components/shared/onboarding-stepper";
-import { Sparkles, Building2, Store, CheckCircle2, Clock, LogOut } from "lucide-react";
+import { useState, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "";
   const [logoutOpen, setLogoutOpen] = useState(false);
-  
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const steps = [
     { 
       id: "business", 
       title: "Profil Bisnis", 
       desc: "Nama, tipe, dan info bisnis",
-      icon: Building2,
+      icon: "business_center",
       active: pathname.includes("/business"),
       completed:
         pathname.includes("/plan") ||
@@ -30,7 +38,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
       id: "plan", 
       title: "Pilih Plan", 
       desc: "Starter, Pro, atau Enterprise",
-      icon: Sparkles,
+      icon: "payments",
       active: pathname.includes("/plan"),
       completed:
         pathname.includes("/outlet") ||
@@ -41,7 +49,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
       id: "outlet", 
       title: "Setup Outlet", 
       desc: "Lokasi toko atau cabang",
-      icon: Store,
+      icon: "storefront",
       active: pathname.includes("/outlet"),
       completed:
         pathname.includes("/operations") || pathname.includes("/complete")
@@ -50,121 +58,117 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
       id: "operations", 
       title: "Operasional", 
       desc: "Jam buka, tutup, dan shift",
-      icon: Clock,
+      icon: "settings_suggest",
       active: pathname.includes("/operations"),
       completed: pathname.includes("/complete")
     },
     { 
       id: "complete", 
-      title: "Selesai", 
-      desc: "Dashboard siap digunakan",
-      icon: CheckCircle2,
+      title: "Pengecekan Akhir", 
+      desc: "Periksa kembali data Anda",
+      icon: "check_circle",
       active: pathname.includes("/complete"),
       completed: false
     }
   ];
 
+  const activeStepIndex = steps.findIndex(s => s.active) + 1;
+
   return (
-    <main className="grid min-h-screen lg:grid-cols-[380px_1fr] bg-white">
-      {/* Left sidebar - Premium Dark Theme */}
-      <aside className="relative hidden flex-col justify-between overflow-hidden bg-[#0A0F1C] p-10 text-white lg:flex border-r border-white/5 shadow-2xl">
-        <div className="absolute -left-[30%] -top-[10%] h-[60%] w-[60%] rounded-full bg-cyan-500/15 blur-[100px]" />
-        <div className="absolute -bottom-[20%] -right-[20%] h-[50%] w-[50%] rounded-full bg-blue-600/15 blur-[100px]" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-soft-light" />
+    <div className="flex h-screen bg-surface overflow-hidden text-on-surface font-body-lg">
+      {/* Sidebar */}
+      <aside 
+        className="hidden md:flex fixed left-0 top-0 h-full w-[360px] rounded-r-3xl shadow-soft flex-col py-10 px-8 justify-between z-10 transition-transform duration-300 bg-[#0A1945]"
+      >
+        <div>
+          <img src="/branding/bayaro-logo-transparent.png" alt="Bayaro" className="h-[100px] brightness-0 invert ml-[-20px]" />
 
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="rounded-xl bg-white p-2 shadow-lg">
-            <BayaroLogo compact />
-          </div>
-          <span className="font-heading text-2xl font-bold tracking-wider text-white">BAYARO</span>
-        </div>
-
-        <div className="relative z-10 space-y-12">
-          <div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-lg backdrop-blur-md mb-6">
-              <Sparkles className="h-5 w-5 text-cyan-400" />
-            </div>
-            <h2 className="font-heading text-3xl font-bold leading-tight tracking-tight">
-              Setup bisnis kamu dalam 5 langkah.
-            </h2>
-            <p className="mt-4 text-sm leading-relaxed text-slate-400">
+          {/* Header Info */}
+          <div className="mb-10 text-white">
+            <h1 className="font-display-lg text-3xl leading-tight mb-4 tracking-tight">Setup bisnis kamu<br/>dalam 5 langkah.</h1>
+            <p className="font-body-md text-sm text-white/70 leading-relaxed">
               Hanya butuh kurang dari 2 menit. Seluruh pengaturan ini dapat diubah kapan saja melalui halaman Settings.
             </p>
           </div>
 
-          {/* Premium Vertical Stepper */}
-          <div className="space-y-6">
+          {/* Navigation Stepper */}
+          <nav className="flex flex-col gap-8 relative mt-12">
+            {/* Vertical Line Connector */}
+            <div className="absolute left-[1.125rem] top-8 bottom-8 w-[2px] bg-white/10 -z-10"></div>
+
             {steps.map((step, index) => (
-              <div key={step.id} className="relative flex gap-4">
-                {/* Connecting line */}
-                {index !== steps.length - 1 && (
-                  <div className={`absolute left-[19px] top-[40px] bottom-[-24px] w-[2px] rounded-full transition-colors duration-500 ${step.completed ? "bg-cyan-500" : "bg-white/5"}`} />
+              <div 
+                key={step.id} 
+                className={cn(
+                  "flex items-start gap-4 relative group transition-opacity duration-200",
+                  step.active || step.completed ? "opacity-100" : "opacity-50 hover:opacity-100"
                 )}
-                
-                {/* Step Icon */}
-                <div className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-500 ${
-                  step.active ? "border-cyan-400 bg-cyan-400/20 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.4)]" : 
-                  step.completed ? "border-cyan-500 bg-cyan-500 text-white" : 
-                  "border-white/10 bg-[#0A0F1C] text-slate-600"
-                }`}>
-                  <step.icon className="h-4 w-4" />
+              >
+                <div 
+                  className={cn(
+                    "flex-shrink-0 w-10 h-10 rounded-full border-2 flex items-center justify-center relative z-10 transition-all duration-200 bg-[#0A1945]",
+                    step.active ? "border-white scale-110" : "border-white/20"
+                  )}
+                >
+                  <span className={cn(
+                    "material-symbols-outlined text-lg",
+                    step.active ? "text-white" : "text-white/50"
+                  )}>
+                    {step.icon}
+                  </span>
                 </div>
-                
-                {/* Step Text */}
                 <div className="pt-2">
-                  <h3 className={`font-semibold transition-colors duration-500 ${step.active ? "text-white" : step.completed ? "text-slate-300" : "text-slate-500"}`}>
+                  <span className={cn(
+                    "block font-label-md text-sm font-bold tracking-wide",
+                    step.active ? "text-white" : "text-white/70"
+                  )}>
                     {step.title}
-                  </h3>
-                  <p className={`text-xs mt-1 transition-colors duration-500 ${step.active ? "text-cyan-200/70" : "text-slate-600"}`}>
+                  </span>
+                  <span className={cn(
+                    "block font-body-md text-xs mt-1",
+                    step.active ? "text-white/70" : "text-white/50"
+                  )}>
                     {step.desc}
-                  </p>
+                  </span>
                 </div>
               </div>
             ))}
-          </div>
+          </nav>
         </div>
 
-        <div className="relative z-10 flex items-center justify-between">
-          <div className="text-sm font-medium text-slate-600">
-            © {new Date().getFullYear()} Bayaro Technologies
-          </div>
+        {/* Footer */}
+        <div className="mt-8 pt-8 border-t border-white/10 flex justify-between items-center text-white/50">
+          <span className="font-label-sm text-[10px]">© {new Date().getFullYear()} Bayaro Technologies</span>
           <button 
             onClick={() => setLogoutOpen(true)}
-            className="flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+            className="flex items-center gap-2 font-label-sm text-xs hover:text-white transition-colors"
           >
-            <LogOut className="h-4 w-4" />
+            <span className="material-symbols-outlined text-sm">logout</span>
             Keluar
           </button>
         </div>
       </aside>
 
-      {/* Right content area - Clean & Minimalist */}
-      <div className="flex flex-col bg-[#F8FAFC] lg:bg-white h-screen overflow-y-auto overflow-x-hidden relative">
-        <div className="flex items-center justify-between border-b border-slate-100 bg-white/90 px-6 py-4 backdrop-blur-md sticky top-0 z-50 lg:hidden">
-          <BayaroLogo />
-          <div className="flex items-center gap-4">
-            <OnboardingStepper />
-            <button 
-              onClick={() => setLogoutOpen(true)} 
-              className="text-slate-400 hover:text-rose-500 transition-colors"
-              title="Keluar"
-            >
-              <LogOut className="h-5 w-5" />
-            </button>
-          </div>
+      {/* Main Content Area */}
+      <main className={cn(
+        "flex-1 flex flex-col md:ml-[360px] h-full overflow-y-auto bg-surface px-6 py-10 md:px-12 md:py-16",
+        isMobile && 'pt-24'
+      )}>
+        <div className="w-full relative">
+          {children}
+          {/* Bottom spacer for mobile scrolling */}
+          <div className="h-12 md:h-0"></div>
         </div>
+      </main>
 
-        {/* Dynamic Background for Right Side */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none hidden lg:block">
-          <div className="absolute -left-[10%] -top-[10%] h-[70vh] w-[70vh] animate-[spin_20s_linear_infinite] rounded-full bg-gradient-to-br from-cyan-300/5 to-blue-500/5 blur-[100px]" />
-          <div className="absolute -right-[10%] -bottom-[10%] h-[70vh] w-[70vh] animate-[spin_25s_linear_infinite_reverse] rounded-full bg-gradient-to-br from-violet-300/5 to-blue-500/5 blur-[100px]" />
+      {/* Mobile Nav Header (Visible only on mobile) */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0A1945] flex items-center justify-between px-6 z-50">
+        <div className="flex items-center gap-2 text-white font-display-lg-mobile font-bold tracking-tight">
+          <span className="material-symbols-outlined filled-icon text-white text-xl">rocket_launch</span>
+          <span className="text-xl">Bayaro</span>
         </div>
-
-        {/* Changed back to items-start with margin to fix top cut-off issue */}
-        <div className="relative z-10 flex flex-1 items-start justify-center p-6 lg:p-12 pt-12 lg:pt-20">
-          <div className="w-full max-w-2xl">
-            {children}
-          </div>
+        <div className="text-white font-label-sm bg-white/10 px-3 py-1 rounded-full text-xs">
+          {activeStepIndex}/5
         </div>
       </div>
 
@@ -174,7 +178,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
         title="Konfirmasi Keluar"
         size="sm"
       >
-        <div className="text-slate-600">
+        <div className="text-on-surface">
           Apakah Anda yakin ingin keluar dari akun ini?
         </div>
         <div className="mt-6 flex justify-end gap-3">
@@ -186,6 +190,6 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
           </Button>
         </div>
       </Modal>
-    </main>
+    </div>
   );
 }

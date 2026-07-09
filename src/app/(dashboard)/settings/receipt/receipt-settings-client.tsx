@@ -9,6 +9,7 @@ type Business = {
   name: string
   phone: string | null
   address: string | null
+  logo: string | null
 } | null
 
 type Props = {
@@ -37,7 +38,7 @@ function Toggle({
       aria-checked={checked}
       id={id}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
         checked ? "bg-indigo-600" : "bg-slate-200"
       }`}
     >
@@ -93,6 +94,8 @@ function ReceiptPreview({
   showAddress,
   showPhone,
   showKasir,
+  showLogo,
+  logoUrl,
   businessPhone,
   businessAddress,
 }: {
@@ -105,6 +108,8 @@ function ReceiptPreview({
   showAddress: boolean
   showPhone: boolean
   showKasir: boolean
+  showLogo?: boolean
+  logoUrl?: string | null
   businessPhone: string
   businessAddress: string
 }) {
@@ -135,6 +140,12 @@ function ReceiptPreview({
     <div className="bg-white border-2 border-dashed border-slate-200 rounded-xl p-4 font-mono text-xs leading-relaxed w-[280px] shrink-0">
       {/* Header */}
       <div className="text-center space-y-0.5">
+        {showLogo && logoUrl && (
+          <div className="mb-2 flex justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={logoUrl} alt="Logo" className="w-12 h-12 object-contain grayscale" />
+          </div>
+        )}
         {header1 && <div className="font-bold">{center(header1)}</div>}
         {header2 && (showAddress ? <div>{center(header2)}</div> : null)}
         {!header2 && showAddress && businessAddress && (
@@ -436,7 +447,7 @@ export function ReceiptSettingsClient({ settings, business }: Props) {
           </div>
 
           {/* ── Right: preview ── */}
-          <div className="shrink-0">
+          <div className="shrink-0 lg:sticky lg:top-24 h-fit">
             <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-soft">
               <h3 className="text-sm font-semibold text-slate-800 mb-4">
                 Preview Struk
@@ -451,6 +462,8 @@ export function ReceiptSettingsClient({ settings, business }: Props) {
                 showAddress={showAddress}
                 showPhone={showPhone}
                 showKasir={showKasir}
+                showLogo={showLogo}
+                logoUrl={business?.logo}
                 businessPhone={business?.phone ?? ""}
                 businessAddress={business?.address ?? ""}
               />

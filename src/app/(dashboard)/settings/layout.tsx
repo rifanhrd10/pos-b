@@ -18,7 +18,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       </div>
       <div className="flex flex-col gap-6 lg:flex-row">
         {/* Left sidebar */}
-        <aside className="w-full lg:w-56 shrink-0">
+        <aside className="w-full lg:w-56 shrink-0 lg:sticky lg:top-24 h-fit">
           <nav className="rounded-[24px] border border-slate-200 bg-white p-2 shadow-soft">
             {settingsNav.map((item) => (
               <SettingsNavLink key={item.href} item={item} />

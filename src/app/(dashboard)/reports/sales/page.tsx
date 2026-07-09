@@ -79,7 +79,6 @@ export default async function SalesReportPage({ searchParams }: PageProps) {
           <select
             name="outletId"
             defaultValue={outletId ?? ""}
-            onChange={() => {}}
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-soft"
           >
             <option value="">Semua Outlet</option>

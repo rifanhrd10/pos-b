@@ -519,16 +519,16 @@ a {
 .group-focus-within\:text-on-secondary-fixed:focus-within { color: #001d33 !important; }
 .selection\:bg-on-secondary-fixed::selection { background-color: #001d33 !important; }
 .selection\:text-on-secondary-fixed::selection { color: #001d33 !important; }
-.bg-primary { background-color: #001e40 !important; }
-.text-primary { color: #001e40 !important; }
-.border-primary { border-color: #001e40 !important; }
-.focus\:border-primary:focus { border-color: #001e40 !important; }
-.focus\:ring-primary\/5:focus { --tw-ring-color: #001e400D !important; }
-.hover\:bg-primary:hover { background-color: #001e40 !important; }
-.hover\:text-primary:hover { color: #001e40 !important; }
-.group-focus-within\:text-primary:focus-within { color: #001e40 !important; }
-.selection\:bg-primary::selection { background-color: #001e40 !important; }
-.selection\:text-primary::selection { color: #001e40 !important; }
+.bg-primary { background-color: #004ac6 !important; }
+.text-primary { color: #004ac6 !important; }
+.border-primary { border-color: #004ac6 !important; }
+.focus\:border-primary:focus { border-color: #004ac6 !important; }
+.focus\:ring-primary\/5:focus { --tw-ring-color: #004ac60D !important; }
+.hover\:bg-primary:hover { background-color: #004ac6 !important; }
+.hover\:text-primary:hover { color: #004ac6 !important; }
+.group-focus-within\:text-primary:focus-within { color: #004ac6 !important; }
+.selection\:bg-primary::selection { background-color: #004ac6 !important; }
+.selection\:text-primary::selection { color: #004ac6 !important; }
 .font-label-md { font-family: 'Inter', sans-serif !important; }
 .text-label-md { font-size: 12px !important; line-height: 16px !important; letter-spacing: 0.05em !important; font-weight: 500 !important; }
 .font-body-md { font-family: 'Inter', sans-serif !important; }

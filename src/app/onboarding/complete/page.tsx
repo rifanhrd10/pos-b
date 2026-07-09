@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { completeOnboarding, seedDemoData } from "@/actions/onboarding";
-import { Button } from "@/components/ui/button";
-import { Building2, Store, Clock, CreditCard, PartyPopper } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Summary = {
   businessName: string;
@@ -45,55 +44,76 @@ export default function CompletePage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-3">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100">
-          <PartyPopper className="h-7 w-7 text-emerald-600" />
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+      <div className="mb-10 relative">
+        <div className="flex items-center gap-6 mb-4">
+          <div className="flex items-center justify-center w-[60px] h-[60px] rounded-[16px] bg-[#eff4ff] text-[#004ac6] font-display-lg font-bold text-[28px] border border-[#c2d3ff]">05</div>
+          <div>
+            <h1 className="font-display-lg text-[32px] md:text-[32px] text-on-surface tracking-tight font-bold">Pengecekan Akhir</h1>
+            <p className="text-primary font-label-md uppercase tracking-[0.1em] mt-1">Langkah Kelima: Pengecekan Akhir</p>
+          </div>
         </div>
-        <h1 className="text-2xl font-bold text-slate-900 font-heading">Hampir selesai!</h1>
-        <p className="text-slate-500">Cek ringkasan setup bisnis Anda sebelum masuk ke dashboard.</p>
+        <p className="font-body-md text-[15px] text-on-surface-variant max-w-4xl leading-relaxed mt-6">
+          Periksa kembali ringkasan pengaturan bisnis Anda. <span className="text-primary font-medium">Jika sudah sesuai, silakan selesaikan untuk masuk ke Dashboard.</span>
+        </p>
+        <div className="mt-8 h-1.5 w-full bg-outline-variant/20 rounded-full overflow-hidden shadow-inner">
+          <div className="h-full bg-primary w-full transition-all duration-700 ease-out "></div>
+        </div>
       </div>
 
-      {/* Summary */}
-      {summary && (
-        <div className="space-y-3">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
-            <div className="flex items-start gap-3">
-              <Building2 className="h-5 w-5 text-cyan-500 mt-0.5 shrink-0" />
+      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-sm p-6 md:p-8 relative z-10 space-y-8">
+        
+        {/* Summary */}
+        {summary && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex items-start gap-4 p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low/50">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                <span className="material-symbols-outlined">domain</span>
+              </div>
               <div>
-                <p className="text-xs text-slate-400 uppercase tracking-wide">Bisnis</p>
-                <p className="font-semibold text-slate-900">{summary.businessName}</p>
-                <p className="text-sm text-slate-500">{summary.businessType}</p>
+                <p className="font-label-sm text-xs text-outline uppercase tracking-wider mb-1">Bisnis</p>
+                <p className="font-headline-sm text-headline-sm text-on-surface">{summary.businessName}</p>
+                <p className="font-body-md text-sm text-on-surface-variant">{summary.businessType}</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <CreditCard className="h-5 w-5 text-cyan-500 mt-0.5 shrink-0" />
+            
+            <div className="flex items-start gap-4 p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low/50">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                <span className="material-symbols-outlined">credit_card</span>
+              </div>
               <div>
-                <p className="text-xs text-slate-400 uppercase tracking-wide">Plan</p>
-                <p className="font-semibold text-slate-900">
-                  {summary.planName}{" "}
-                  <span className="text-xs font-normal text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                <p className="font-label-sm text-xs text-outline uppercase tracking-wider mb-1">Plan</p>
+                <div className="flex flex-col gap-1">
+                  <p className="font-headline-sm text-headline-sm text-on-surface">{summary.planName}</p>
+                  <span className="inline-flex items-center gap-1 font-label-sm text-[10px] text-tertiary bg-tertiary/10 px-2 py-1 rounded-md w-fit">
+                    <span className="material-symbols-outlined text-[12px]">schedule</span>
                     Trial Pro s.d. {summary.trialEndsAt}
                   </span>
-                </p>
+                </div>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <Store className="h-5 w-5 text-cyan-500 mt-0.5 shrink-0" />
+            
+            <div className="flex items-start gap-4 p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low/50">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                <span className="material-symbols-outlined">storefront</span>
+              </div>
               <div>
-                <p className="text-xs text-slate-400 uppercase tracking-wide">Outlet</p>
-                <p className="font-semibold text-slate-900">{summary.outletCount} outlet</p>
-                <p className="text-sm text-slate-500">{summary.outletNames.join(", ")}</p>
+                <p className="font-label-sm text-xs text-outline uppercase tracking-wider mb-1">Outlet</p>
+                <p className="font-headline-sm text-headline-sm text-on-surface">{summary.outletCount} outlet</p>
+                <p className="font-body-md text-sm text-on-surface-variant line-clamp-1">{summary.outletNames.join(", ")}</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <Clock className="h-5 w-5 text-cyan-500 mt-0.5 shrink-0" />
+            
+            <div className="flex items-start gap-4 p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low/50">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                <span className="material-symbols-outlined">schedule</span>
+              </div>
               <div>
-                <p className="text-xs text-slate-400 uppercase tracking-wide">Operasional</p>
-                <p className="font-semibold text-slate-900">
+                <p className="font-label-sm text-xs text-outline uppercase tracking-wider mb-1">Operasional</p>
+                <p className="font-headline-sm text-headline-sm text-on-surface">
                   {summary.openTime} – {summary.closeTime}
                 </p>
-                <p className="text-sm text-slate-500">
+                <p className="font-body-md text-sm text-on-surface-variant">
                   {summary.hasShift
                     ? `${summary.shiftCount} shift karyawan`
                     : "Tanpa shift, tutup kas 1x/hari"}
@@ -101,38 +121,36 @@ export default function CompletePage() {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {!summary && (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-16 rounded-2xl bg-slate-100 animate-pulse" />
-          ))}
-        </div>
-      )}
+        {!summary && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-24 rounded-xl bg-surface-container-low animate-pulse border border-outline-variant/30" />
+            ))}
+          </div>
+        )}
 
-      <div className="space-y-3">
-        <Button
-          onClick={handleComplete}
-          disabled={loading || seedLoading}
-          className="w-full bg-cyan-500 hover:bg-cyan-600 h-12 text-base font-semibold"
-        >
-          {loading ? "Memuat dashboard..." : "Mulai Gunakan Bayaro →"}
-        </Button>
-        <Button
-          variant="outline"
-          onClick={handleSeedAndComplete}
-          disabled={loading || seedLoading}
-          className="w-full h-11 text-sm text-slate-500"
-        >
-          {seedLoading ? "Menambahkan data..." : "Isi dengan data contoh (untuk mencoba fitur)"}
-        </Button>
+        <div className="pt-8 border-t border-outline-variant/20 space-y-4">
+          <button
+            onClick={handleComplete}
+            disabled={loading || seedLoading || !summary}
+            className="w-full flex items-center justify-center gap-2 bg-primary text-on-primary py-4 rounded-xl font-label-lg text-lg hover:bg-primary/90 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed group"
+          >
+            {loading ? "Menyiapkan dashboard..." : "Selesaikan & Masuk Dashboard"}
+            {!loading && <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">arrow_forward</span>}
+          </button>
+          
+          <button
+            onClick={handleSeedAndComplete}
+            disabled={loading || seedLoading || !summary}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-outline-variant text-on-surface-variant font-label-md hover:bg-surface-container-low transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span className="material-symbols-outlined text-sm">magic_button</span>
+            {seedLoading ? "Menambahkan data..." : "Isi dengan data contoh (untuk mencoba fitur)"}
+          </button>
+        </div>
       </div>
-
-      <p className="text-xs text-slate-400 text-center">
-        Semua pengaturan dapat diubah kapan saja melalui halaman Pengaturan.
-      </p>
     </div>
   );
 }

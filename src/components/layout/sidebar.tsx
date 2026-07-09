@@ -40,7 +40,7 @@ function SidebarContent({ collapsed, permissions }: { collapsed: boolean; permis
         )}
       </div>
 
-      <div className="flex-1 space-y-6 overflow-y-auto pr-1">
+      <div className="flex-1 space-y-6 overflow-y-auto pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {navSections.map((section) => {
           const isOpen = openDropdowns[section.label] ?? false;
           const sectionItems = section.items.filter((href) => itemMap.has(href));

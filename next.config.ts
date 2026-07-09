@@ -11,6 +11,14 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "4mb",
     },
   },
+  async rewrites() {
+    return [
+      {
+        source: "/api/wilayah/:path*",
+        destination: "https://wilayah.id/api/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;
