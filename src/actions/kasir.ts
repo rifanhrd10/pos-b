@@ -902,3 +902,113 @@ export async function selectKasirOutlet(
   await setKasirOutletCookie(outletId);
   return { ok: true, redirectTo: "/kasir/pos" };
 }
+
+// ─── Receipt / Reprint ────────────────────────────────────────────────────
+
+export async function getOrderForReceipt(orderId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      items: {
+        include: {
+          toppings: true,
+        },
+      },
+      promos: { include: { promo: { select: { id: true, name: true, type: true } } } },
+      payment: true,
+      employee: { select: { name: true } },
+      outlet: {
+        select: {
+          name: true,
+          address: true,
+          phone: true,
+          businessId: true,
+        },
+      },
+      business: {
+        select: {
+          name: true,
+          address: true,
+          phone: true,
+          taxRate: true,
+          serviceRate: true,
+        },
+      },
+      table: { select: { name: true } },
+    },
+  });
+
+  if (!order || !order.payment) return null;
+
+  const settings = await prisma.businessSettings.findUnique({
+    where: { businessId: order.businessId },
+  });
+
+  const formattedOrder = {
+    id: order.id,
+    orderNumber: order.orderNumber,
+    tableId: order.tableId,
+    tableName: order.table?.name,
+    orderType: order.orderType,
+    subtotal: order.subtotal,
+    taxAmount: order.taxAmount,
+    serviceAmount: order.serviceAmount,
+    discountAmount: order.discountAmount,
+    totalAmount: order.totalAmount,
+    taxRate: order.business.taxRate,
+    serviceRate: order.business.serviceRate,
+    items: order.items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      variantName: item.variantName,
+      price: item.price,
+      quantity: item.quantity,
+      subtotal: item.subtotal,
+      notes: item.notes,
+      toppings: item.toppings.map((t) => ({
+        id: t.id,
+        name: t.name,
+        price: t.price,
+      })),
+    })),
+    promos: order.promos.map((p) => ({
+      id: p.id,
+      discountAmount: p.discountAmount,
+      promo: p.promo,
+    })),
+  };
+
+  const payment = {
+    id: order.payment.id,
+    method: order.payment.method,
+    totalAmount: order.payment.totalAmount,
+    cashEntered: order.payment.cashEntered,
+    changeAmount: order.payment.changeAmount,
+    paidAt: order.payment.paidAt,
+  };
+
+  return {
+    order: formattedOrder,
+    payment,
+    businessName: order.business.name,
+    businessAddress: order.business.address,
+    businessPhone: order.business.phone,
+    kasirName: order.employee?.name ?? "Kasir",
+    receiptSettings: settings
+      ? {
+          header1: settings.receiptHeader1,
+          header2: settings.receiptHeader2,
+          header3: settings.receiptHeader3,
+          footer: settings.receiptFooter,
+          showLogo: settings.receiptShowLogo,
+          showAddress: settings.receiptShowAddress,
+          showPhone: settings.receiptShowPhone,
+          showKasir: settings.receiptShowKasir,
+          thankYou: settings.receiptThankYou,
+        }
+      : undefined,
+  };
+}

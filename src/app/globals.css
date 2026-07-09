@@ -544,3 +544,33 @@ a {
 .font-body-lg { font-family: 'Inter', sans-serif !important; }
 .text-body-lg { font-size: 16px !important; line-height: 24px !important; letter-spacing: normal !important; font-weight: 400 !important; }
 
+/* ── Thermal Receipt ─────────────────────────────────────────────────────── */
+
+@media print {
+  body > * { display: none !important; }
+  .receipt-print-area { display: block !important; }
+  .kot-print-area { display: block !important; }
+  .no-print { display: none !important; }
+}
+
+.receipt-print-area {
+  display: none;
+}
+
+.kot-print-area {
+  display: none;
+}
+
+.receipt-paper {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #000;
+  background: #fff;
+}
+
+.w-58mm { width: 58mm; }
+.w-80mm { width: 80mm; }
+
