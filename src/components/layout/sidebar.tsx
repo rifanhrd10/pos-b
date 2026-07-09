@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { ChevronDown, X } from "lucide-react";
+import { X } from "lucide-react";
 import { navItems, navSections } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { BayaroLogo } from "@/components/shared/logo";
@@ -22,11 +21,6 @@ function SidebarContent({ collapsed, permissions }: { collapsed: boolean; permis
     (item) => !item.permission || permissions.includes(item.permission)
   );
   const itemMap = new Map(visibleItems.map((item) => [item.href, item]));
-  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
-
-  const toggleDropdown = (label: string) => {
-    setOpenDropdowns((prev) => ({ ...prev, [label]: !prev[label] }));
-  };
 
   return (
     <div className={cn("flex h-full flex-col bg-[#071a49] pt-4 text-white transition-all duration-300", collapsed ? "px-3 pb-7" : "px-5 pb-7")}>
@@ -42,38 +36,20 @@ function SidebarContent({ collapsed, permissions }: { collapsed: boolean; permis
 
       <div className="flex-1 space-y-6 overflow-y-auto pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {navSections.map((section) => {
-          const isOpen = openDropdowns[section.label] ?? false;
           const sectionItems = section.items.filter((href) => itemMap.has(href));
           if (sectionItems.length === 0) return null;
 
           return (
             <div key={section.label}>
-              {!collapsed ? (
-                section.dropdown ? (
-                  <button
-                    onClick={() => toggleDropdown(section.label)}
-                    className="mb-2 flex w-full items-center justify-between rounded-xl px-3 py-1 transition hover:bg-white/5"
-                  >
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-300/80">
-                      {section.label}
-                    </p>
-                    <ChevronDown
-                      size={12}
-                      className={cn("text-blue-300/80 transition-transform duration-200", isOpen && "rotate-180")}
-                    />
-                  </button>
-                ) : (
-                  <div className="mb-3 px-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-300/80">
-                      {section.label}
-                    </p>
-                  </div>
-                )
-              ) : null}
+              {!collapsed && (
+                <div className="mb-3 px-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-300/80">
+                    {section.label}
+                  </p>
+                </div>
+              )}
 
-              {/* Items: always show for normal sections, conditionally for dropdowns */}
-              {(!section.dropdown || isOpen || collapsed) && (
-                <nav className="space-y-1.5">
+              <nav className="space-y-1.5">
                   {sectionItems.map((href) => {
                     const item = itemMap.get(href);
                     if (!item) return null;
@@ -102,7 +78,6 @@ function SidebarContent({ collapsed, permissions }: { collapsed: boolean; permis
                     );
                   })}
                 </nav>
-              )}
             </div>
           );
         })}

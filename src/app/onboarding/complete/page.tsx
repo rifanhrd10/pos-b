@@ -50,7 +50,7 @@ export default function CompletePage() {
           <div className="flex items-center justify-center w-[60px] h-[60px] rounded-[16px] bg-[#eff4ff] text-[#004ac6] font-display-lg font-bold text-[28px] border border-[#c2d3ff]">05</div>
           <div>
             <h1 className="font-display-lg text-[32px] md:text-[32px] text-on-surface tracking-tight font-bold">Pengecekan Akhir</h1>
-            <p className="text-primary font-label-md uppercase tracking-[0.1em] mt-1">Langkah Kelima: Pengecekan Akhir</p>
+            <p className="text-primary font-label-md uppercase tracking-[0.1em] mt-1">Langkah Kelima: Selesai</p>
           </div>
         </div>
         <p className="font-body-md text-[15px] text-on-surface-variant max-w-4xl leading-relaxed mt-6">

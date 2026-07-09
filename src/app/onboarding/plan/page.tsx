@@ -85,23 +85,16 @@ export default function PlanPage() {
   }
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full relative">
-      {/* Ambient Gradient Blobs for Immersive Feel */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-fixed-dim rounded-full mix-blend-multiply filter blur-[100px] opacity-30 pointer-events-none"></div>
-      <div className="absolute bottom-0 left-[-20%] w-[600px] h-[600px] bg-tertiary-fixed-dim rounded-full mix-blend-multiply filter blur-[120px] opacity-20 pointer-events-none"></div>
-      
-      {/* Header */}
-      <div className="mb-12 relative z-10">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-primary font-headline-md shadow-sm border border-outline-variant/30">
-            02
-          </div>
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+      <div className="mb-10 relative">
+        <div className="flex items-center gap-6 mb-4">
+          <div className="flex items-center justify-center w-[60px] h-[60px] rounded-[16px] bg-[#eff4ff] text-[#004ac6] font-display-lg font-bold text-[28px] border border-[#c2d3ff]">02</div>
           <div>
-            <h1 className="font-display-lg text-display-lg text-on-surface mb-1">Pilih Plan</h1>
-            <p className="font-label-md text-label-md text-primary uppercase tracking-wider">Langkah Kedua: Skala Bisnis</p>
+            <h1 className="font-display-lg text-[32px] md:text-[32px] text-on-surface tracking-tight font-bold">Pilih Plan</h1>
+            <p className="text-primary font-label-md uppercase tracking-[0.1em] mt-1">Langkah Kedua: Skala Bisnis</p>
           </div>
         </div>
-        <p className="font-body-lg text-body-lg text-on-surface-variant max-w-4xl">
+        <p className="font-body-md text-[15px] text-on-surface-variant max-w-4xl leading-relaxed mt-6">
           Pilih paket yang paling sesuai dengan kebutuhan bisnis Anda. <span className="text-primary font-medium">Anda dapat mencoba fitur premium gratis selama 14 hari.</span>
         </p>
         
@@ -120,7 +113,7 @@ export default function PlanPage() {
       )}
 
       {/* Pricing Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 relative z-10">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 relative z-10 pt-4">
         {plans.map((plan) => {
           const iconName = PLAN_ICONS[plan.name as keyof typeof PLAN_ICONS] ?? "bolt";
           const isSelected = selectedPlanId === plan.id;
@@ -131,95 +124,84 @@ export default function PlanPage() {
               key={plan.id}
               onClick={() => setSelectedPlanId(plan.id)}
               className={cn(
-                "bg-surface-container-lowest rounded-2xl p-gutter flex flex-col relative overflow-hidden transition-all duration-300 ease-out cursor-pointer group hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,74,198,0.1)]",
+                "bg-white rounded-2xl p-6 flex flex-col relative overflow-hidden transition-all duration-300 ease-out cursor-pointer group hover:-translate-y-1 hover:shadow-lg",
                 isSelected
                   ? "border-2 border-primary shadow-[0_8px_30px_rgba(0,74,198,0.12)]"
-                  : "border border-outline-variant shadow-sm hover:border-primary-fixed-dim"
+                  : "border border-outline-variant/30 shadow-sm hover:border-outline-variant"
               )}
             >
               {isSelected && (
-                <div className="absolute top-0 right-0 w-32 h-32 bg-surface-container-highest rounded-bl-full -mr-8 -mt-8 transition-transform duration-300 group-hover:scale-110"></div>
+                <div className="absolute top-0 right-0 w-24 h-24 bg-outline-variant/10 rounded-bl-full -mr-4 -mt-4 transition-transform duration-300 group-hover:scale-110"></div>
               )}
               
-              {isPro && !isSelected && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white font-label-sm text-label-sm py-1 px-4 rounded-full uppercase tracking-wider shadow-md z-20">
+              {isPro && (
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-primary text-white font-label-sm text-[10px] py-1 px-4 rounded-b-lg uppercase tracking-wider shadow-sm z-20">
                   Paling Populer
                 </div>
               )}
 
               <div
                 className={cn(
-                  "w-12 h-12 rounded-xl flex items-center justify-center mb-6 relative z-10",
-                  isSelected ? "bg-primary text-white shadow-md" : "bg-surface-container text-primary",
-                  (isPro && !isSelected) ? "mt-2" : ""
+                  "w-10 h-10 rounded-lg flex items-center justify-center mb-4 relative z-10",
+                  isSelected ? "bg-primary text-white shadow-md" : "bg-primary/10 text-primary",
+                  isPro ? "mt-4" : ""
                 )}
               >
-                <span className="material-symbols-outlined">{iconName}</span>
+                <span className="material-symbols-outlined text-[20px]">{iconName}</span>
               </div>
               
-              <h3 className="font-headline-sm text-headline-sm text-on-surface mb-2 relative z-10">
+              <h3 className="font-headline-sm text-[18px] text-on-surface mb-1 relative z-10 font-bold">
                 {plan.displayName}
               </h3>
-              <p className="font-body-md text-body-md text-on-surface-variant mb-6 relative z-10 h-10">
+              <p className="font-body-md text-[13px] text-on-surface-variant mb-4 relative z-10 min-h-[40px]">
                 {PLAN_DESCRIPTIONS[plan.name as keyof typeof PLAN_DESCRIPTIONS]}
               </p>
               
-              <div className="mb-8 relative z-10">
+              <div className="mb-4 relative z-10 h-12 flex items-center">
                 {plan.price === 0 ? (
-                  <span className="font-display-lg text-display-lg text-on-surface">Gratis</span>
+                  <span className="font-display-lg text-[40px] font-bold text-on-surface tracking-tight leading-none">Gratis</span>
                 ) : (
-                  <>
-                    <span className="font-display-lg text-display-lg text-on-surface">
+                  <div className="flex items-baseline gap-1">
+                    <span className="font-display-lg text-[32px] font-bold text-on-surface tracking-tight leading-none">
                       {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(plan.price)}
                     </span>
-                    <span className="font-body-md text-body-md text-on-surface-variant">/bln</span>
-                  </>
+                    <span className="font-body-md text-[13px] text-on-surface-variant font-medium">/bln</span>
+                  </div>
                 )}
               </div>
               
-              <div className="w-full h-px bg-outline-variant/50 mb-8 relative z-10"></div>
+              <div className="w-full h-px bg-outline-variant/30 mb-5 relative z-10"></div>
               
-              <ul className="space-y-4 mb-8 flex-1 relative z-10">
-                <li className="flex items-start gap-3">
-                  <span className={cn("material-symbols-outlined text-xl", isSelected ? "text-primary" : "text-on-surface-variant")}>check_circle</span>
-                  <span className="font-body-md text-body-md text-on-surface">{formatLimit(plan.maxOutlets, "outlet")}</span>
+              <ul className="space-y-3 mb-6 flex-1 relative z-10">
+                <li className="flex items-center gap-3">
+                  <span className={cn("material-symbols-outlined text-[18px]", isSelected ? "text-primary" : "text-on-surface-variant")}>check_circle</span>
+                  <span className="font-body-md text-[13px] text-on-surface">{formatLimit(plan.maxOutlets, "outlet")}</span>
                 </li>
-                <li className="flex items-start gap-3">
-                  <span className={cn("material-symbols-outlined text-xl", isSelected ? "text-primary" : "text-on-surface-variant")}>check_circle</span>
-                  <span className="font-body-md text-body-md text-on-surface">{formatLimit(plan.maxEmployees, "karyawan")}</span>
+                <li className="flex items-center gap-3">
+                  <span className={cn("material-symbols-outlined text-[18px]", isSelected ? "text-primary" : "text-on-surface-variant")}>check_circle</span>
+                  <span className="font-body-md text-[13px] text-on-surface">{formatLimit(plan.maxEmployees, "karyawan")}</span>
                 </li>
                 {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-3">
-                    <span className={cn("material-symbols-outlined text-xl", isSelected ? "text-primary" : "text-on-surface-variant")}>check_circle</span>
-                    <span className="font-body-md text-body-md text-on-surface">{FEATURE_LABELS[f] ?? f}</span>
+                  <li key={f} className="flex items-center gap-3">
+                    <span className={cn("material-symbols-outlined text-[18px]", isSelected ? "text-primary" : "text-on-surface-variant")}>check_circle</span>
+                    <span className="font-body-md text-[13px] text-on-surface">{FEATURE_LABELS[f] ?? f}</span>
                   </li>
                 ))}
               </ul>
               
               {isSelected ? (
-                <button type="button" className="w-full py-3 rounded-xl bg-primary-container text-on-primary-container font-label-md text-label-md flex items-center justify-center gap-2 relative z-10 transition-colors hover:bg-primary hover:text-white">
-                  <span className="material-symbols-outlined text-lg">check</span>
+                <button type="button" className="w-full py-2.5 rounded-lg bg-[#002f7a] text-white font-label-md text-[13px] flex items-center justify-center gap-2 relative z-10 transition-colors shadow-md mt-auto">
+                  <span className="material-symbols-outlined text-[16px]">check</span>
                   Plan Terpilih
                 </button>
               ) : (
-                <button type="button" className="w-full py-3 rounded-xl border border-outline-variant text-on-surface font-label-md text-label-md hover:bg-surface-container transition-colors relative z-10">
+                <button type="button" className="w-full py-2.5 rounded-lg border border-outline-variant/50 text-on-surface font-label-md text-[13px] hover:bg-surface-container-low transition-colors relative z-10 mt-auto">
                   Pilih {plan.displayName}
                 </button>
               )}
             </div>
           );
         })}
-      </div>
-
-      {/* Motivational Element */}
-      <div className="mt-auto bg-primary-fixed rounded-2xl p-6 flex flex-col md:flex-row items-center gap-6 shadow-sm border border-primary-fixed-dim/50 mb-12 relative z-10">
-        <div className="w-16 h-16 rounded-full overflow-hidden bg-surface-container-high shrink-0">
-          <img className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEMSRBxPJRCwKo_8_cLQRmW5FbvtHDC-HNQ9tGHt2_DJjYewTDKTmRp5TqjWFk-1KEZzY2mmSmkEUeE-FpzONG-GM0FKAooLjcAT7h2nL53ewGC_Xn7BfeH6KXePfiUJULjjjDdXBGRlnWuToDldKsNVV6nyAIGAyRS2a1FfBvF50k9JwARde3YAhaXzWFteftzu13ptciI7b9Bdy0kqrk2xwidt50MA_Ja5oOpHE5Zr7EPn5A-0GX" alt="Budi Santoso"/>
-        </div>
-        <div>
-          <p className="font-body-lg text-body-lg text-on-primary-fixed-variant italic mb-2">"Sejak beralih ke Pro Plan, pengelolaan 5 cabang coffee shop saya jadi jauh lebih mudah dan transparan."</p>
-          <p className="font-label-sm text-label-sm text-on-surface-variant font-semibold">Budi Santoso - Owner, Kopi Senja</p>
-        </div>
       </div>
 
       {error && (

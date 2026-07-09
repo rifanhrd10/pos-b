@@ -99,7 +99,7 @@ export default function OperationsPage() {
           </div>
         </div>
         <p className="font-body-md text-[15px] text-on-surface-variant max-w-4xl leading-relaxed mt-6">
-          Atur jam buka dan sistem shift karyawan bisnis Anda. <span className="text-primary font-medium">Ini penting untuk pembukuan harian.</span>
+          Atur jam operasional standar dan shift karyawan untuk keperluan absensi dan laporan. <span className="text-primary font-medium">Bisa disesuaikan per outlet nantinya.</span>
         </p>
         <div className="mt-8 h-1.5 w-full bg-outline-variant/20 rounded-full overflow-hidden shadow-inner">
           <div className="h-full bg-primary w-4/5 transition-all duration-700 ease-out "></div>

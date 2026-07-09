@@ -107,14 +107,14 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
                 <div 
                   className={cn(
                     "flex-shrink-0 w-10 h-10 rounded-full border-2 flex items-center justify-center relative z-10 transition-all duration-200 bg-[#0A1945]",
-                    step.active ? "border-white scale-110" : "border-white/20"
+                    step.active ? "border-white scale-110" : (step.completed ? "border-[#4ade80]" : "border-white/20")
                   )}
                 >
                   <span className={cn(
                     "material-symbols-outlined text-lg",
-                    step.active ? "text-white" : "text-white/50"
+                    step.active ? "text-white" : (step.completed ? "text-[#4ade80]" : "text-white/50")
                   )}>
-                    {step.icon}
+                    {step.completed && !step.active ? "check_circle" : step.icon}
                   </span>
                 </div>
                 <div className="pt-2">
