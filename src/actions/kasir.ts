@@ -293,6 +293,7 @@ export async function getOrderWithItems(orderId: string) {
           promo: true,
         },
       },
+      customer: { select: { id: true, name: true, phone: true } },
     },
   });
 }

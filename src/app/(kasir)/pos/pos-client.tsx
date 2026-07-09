@@ -51,6 +51,7 @@ type OrderWithItems = {
       type: string;
     };
   }>;
+  customer?: { id: string; name: string; phone: string | null } | null;
 };
 
 interface PosClientProps {

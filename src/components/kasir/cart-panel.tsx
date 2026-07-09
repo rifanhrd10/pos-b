@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ShoppingCart, Minus, Plus, X, Tag, ChevronDown } from "lucide-react";
 import { getActivePromos, applyPromoByCode, applyPromoById, removePromo } from "@/actions/promo";
 import { emitToast } from "@/components/ui/toast-provider";
+import { CustomerSelector } from "@/components/kasir/customer-selector";
 
 type ActivePromo = {
   id: string;
@@ -46,6 +47,7 @@ type OrderWithItems = {
     toppings: Array<{ id: string; name: string; price: number }>;
   }>;
   promos?: OrderPromo[];
+  customer?: { id: string; name: string; phone: string | null } | null;
 };
 
 interface CartPanelProps {
@@ -260,6 +262,14 @@ export function CartPanel({
       <div className="p-3 border-t border-slate-700 space-y-3">
         {hasItems && (
           <>
+            {/* ── Customer Section ── */}
+            <CustomerSelector
+              businessId={businessId}
+              orderId={order.id}
+              currentCustomer={order.customer}
+              onCustomerChange={() => onRefreshOrder(order.id)}
+            />
+
             {/* ── Promo & Diskon Section ── */}
             <div className="bg-slate-700/60 rounded-xl p-3 space-y-2">
               <div className="flex items-center gap-1.5 mb-1">
