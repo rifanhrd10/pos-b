@@ -22,7 +22,7 @@ export function PinEntryClient({ outletId, outletName }: PinEntryClientProps) {
       if (!result.ok) {
         setError(result.error ?? "PIN tidak valid");
       } else {
-        router.push("/kasir/pos");
+        router.push("/pos");
       }
     });
   };
