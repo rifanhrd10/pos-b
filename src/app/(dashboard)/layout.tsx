@@ -5,6 +5,7 @@ import { ALL_PERMISSIONS, getCurrentEmployeePermissions } from "@/lib/permission
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveOutletId } from "@/lib/outlet-context";
+import { Toaster } from "react-hot-toast";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +49,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {children}
       </DashboardShell>
       <TourGuide hasCompletedTour={hasCompletedTour} />
+      <Toaster position="top-right" />
     </>
   );
 }

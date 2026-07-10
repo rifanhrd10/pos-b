@@ -26,7 +26,7 @@ export default async function OutletPage() {
   }
 
   if (outlets.length === 1) {
-    redirect("/kasir/pos");
+    redirect("/pos");
   }
 
   return (

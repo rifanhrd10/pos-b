@@ -890,9 +890,9 @@ export async function submitPinAndGetRedirect(
   const outlets = await getAssignedOutlets(employeeId);
   if (outlets.length === 1) {
     await setKasirOutletCookie(outlets[0].id);
-    return { ok: true, redirectTo: "/kasir/pos" };
+    return { ok: true, redirectTo: "/pos" };
   }
-  return { ok: true, redirectTo: "/kasir/outlet" };
+  return { ok: true, redirectTo: "/kasir/enter/outlets" };
 }
 
 export async function selectKasirOutlet(
@@ -900,7 +900,7 @@ export async function selectKasirOutlet(
 ): Promise<{ ok: boolean; redirectTo?: string; error?: string }> {
   const { setKasirOutletCookie } = await import("@/lib/outlet-context");
   await setKasirOutletCookie(outletId);
-  return { ok: true, redirectTo: "/kasir/pos" };
+  return { ok: true, redirectTo: "/pos" };
 }
 
 // ─── Receipt / Reprint ────────────────────────────────────────────────────

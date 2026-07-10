@@ -20,7 +20,7 @@ export default async function LaporanPage() {
 
   // get active session
   const activeSession = await getActiveSession(employeeId, outletId);
-  if (!activeSession) redirect("/kasir/pos");
+  if (!activeSession) redirect("/pos");
 
   const employee = await getEmployeeByUserId(session.user.id!);
 
@@ -30,7 +30,7 @@ export default async function LaporanPage() {
       <div className="bg-slate-800 border-b border-slate-700 px-6 py-4 flex items-center justify-between">
         <h1 className="text-slate-50 font-bold">Laporan Shift</h1>
         <a
-          href="/kasir/pos"
+          href="/pos"
           className="text-blue-400 hover:text-blue-300 text-sm transition-colors"
         >
           ← Kembali ke POS
