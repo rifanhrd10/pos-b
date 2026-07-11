@@ -2,7 +2,7 @@ import { getPlansList } from "@/actions/itadmin"
 import { PlansClient } from "./plans-client"
 
 // All available feature keys
-export const ALL_FEATURE_KEYS = [
+const ALL_FEATURE_KEYS = [
   { key: "dashboard.view", label: "Dashboard" },
   { key: "pos.access", label: "POS Kasir" },
   { key: "products.view", label: "Lihat Produk" },
