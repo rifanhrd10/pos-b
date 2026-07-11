@@ -79,6 +79,8 @@ export class WebBluetoothPrinter {
           await new Promise<void>((resolve) => setTimeout(resolve, 20))
         }
       }
+      // Wait for printer to process all data before returning
+      await new Promise<void>((resolve) => setTimeout(resolve, 500))
       return true
     } catch {
       return false

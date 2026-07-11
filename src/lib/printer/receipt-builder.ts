@@ -195,7 +195,7 @@ export function buildReceipt(data: ReceiptData, paperWidth: PaperWidth = 58): Ui
   enc.text(thanks).newline()
   enc.align('left')
 
-  enc.feed(3)
+  enc.feed(5)  // Extra feed lines untuk Bluetooth printer
   enc.cut()
 
   return enc.encode()
@@ -253,7 +253,7 @@ export function buildKot(data: KotData, paperWidth: PaperWidth = 58): Uint8Array
   }
 
   enc.line('-', w)
-  enc.feed(3)
+  enc.feed(5)  // Extra feed lines untuk Bluetooth printer
   enc.cut()
 
   return enc.encode()
@@ -305,7 +305,7 @@ export function buildTestPrint(paperWidth: PaperWidth = 58): Uint8Array {
   enc.text('Printer OK').newline()
   enc.align('left')
 
-  enc.feed(3)
+  enc.feed(5)  // Extra feed lines untuk Bluetooth printer
   enc.cut()
 
   return enc.encode()

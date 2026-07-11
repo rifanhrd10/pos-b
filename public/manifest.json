@@ -1,0 +1,35 @@
+{
+  "name": "Bayaro POS",
+  "short_name": "Bayaro",
+  "description": "Aplikasi POS full-stack untuk kasir dan manajemen toko",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/branding/bayaro-app-icon-blue.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "finance", "productivity"],
+  "shortcuts": [
+    {
+      "name": "POS Kasir",
+      "short_name": "Kasir",
+      "description": "Buka kasir POS",
+      "url": "/pos",
+      "icons": [{ "src": "/branding/bayaro-app-icon-blue.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Buka dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/branding/bayaro-app-icon-blue.png", "sizes": "192x192" }]
+    }
+  ]
+}

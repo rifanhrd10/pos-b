@@ -186,33 +186,54 @@ export function ReceiptModal({
     }
   };
 
-  const actualBtPrint = async () => {
-    const printer = new WebBluetoothPrinter();
-    if (!WebBluetoothPrinter.isSupported()) {
-      setBtToast("Browser Anda tidak mendukung Web Bluetooth (gunakan Chrome)");
-      setTimeout(() => setBtToast(null), 3000);
-      return;
-    }
-    if (!printer.isConnected()) {
-      setBtToast("Printer Bluetooth belum tersambung. Sambungkan dulu di Pengaturan Printer.");
-      setTimeout(() => setBtToast(null), 3000);
-      return;
-    }
-    const data = buildReceipt(buildReceiptData(), paperWidth);
-    const ok = await printer.print(data);
-    if (!ok) {
-      setBtToast("Gagal mencetak via Bluetooth");
-      setTimeout(() => setBtToast(null), 3000);
-    }
-  };
-
   const handleBtPrint = () => {
     setShowBtConfirm(true);
   };
 
   const confirmBtPrint = async () => {
     setShowBtConfirm(false);
-    await actualBtPrint();
+    
+    // Check browser support
+    if (!WebBluetoothPrinter.isSupported()) {
+      setBtToast("Browser Anda tidak mendukung Web Bluetooth (gunakan Chrome)");
+      setTimeout(() => setBtToast(null), 3000);
+      return;
+    }
+
+    const printer = new WebBluetoothPrinter();
+    
+    // Request device (triggers device picker)
+    const deviceSelected = await printer.requestDevice();
+    if (!deviceSelected) {
+      setBtToast("Tidak ada printer yang dipilih");
+      setTimeout(() => setBtToast(null), 3000);
+      return;
+    }
+
+    // Connect to selected device
+    const connected = await printer.connect();
+    if (!connected) {
+      setBtToast("Gagal terhubung ke printer Bluetooth");
+      setTimeout(() => setBtToast(null), 3000);
+      return;
+    }
+
+    // Print
+    const data = buildReceipt(buildReceiptData(), paperWidth);
+    const ok = await printer.print(data);
+    if (!ok) {
+      setBtToast("Gagal mencetak via Bluetooth");
+      setTimeout(() => setBtToast(null), 3000);
+    } else {
+      setBtToast("Berhasil mencetak!");
+      setTimeout(() => setBtToast(null), 2000);
+    }
+
+    // Wait a bit more before disconnect to ensure printer finishes
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Disconnect after print
+    await printer.disconnect();
   };
 
   return (
@@ -523,10 +544,10 @@ export function ReceiptModal({
                   Print via Bluetooth?
                 </h3>
                 <p className="text-sm text-slate-600">
-                  Pastikan printer Bluetooth sudah terhubung sebelum melanjutkan.
+                  Sistem akan scan dan menampilkan daftar printer Bluetooth yang tersedia.
                 </p>
                 <p className="text-xs text-slate-500 mt-2">
-                  Jika belum terhubung, buka <span className="font-semibold">Pengaturan → Printer</span> terlebih dahulu.
+                  Pastikan printer sudah <span className="font-semibold">ON</span> dan <span className="font-semibold">dalam jangkauan</span>.
                 </p>
               </div>
               <div className="flex gap-3 w-full pt-2">

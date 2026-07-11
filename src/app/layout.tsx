@@ -5,8 +5,22 @@ import { ToastProvider } from "@/components/ui/toast-provider";
 export const metadata: Metadata = {
   title: "Bayaro POS",
   description: "Aplikasi kasir full-stack Bayaro dengan modul inti dan tambahan yang siap dipakai.",
+  manifest: "/manifest.json",
   icons: {
     icon: "/branding/bayaro-app-icon-blue.png",
+    apple: "/branding/bayaro-app-icon-blue.png",
+  },
+  themeColor: "#2563eb",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Bayaro POS",
   },
 };
 
