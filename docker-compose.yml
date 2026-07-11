@@ -22,7 +22,7 @@ services:
     container_name: pos-app
     restart: unless-stopped
     ports:
-      - "3001:3000"
+      - "3002:3000"
     environment:
       DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/bayaro_pos"
       AUTH_SECRET: "${AUTH_SECRET}"
