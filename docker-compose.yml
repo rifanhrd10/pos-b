@@ -26,6 +26,8 @@ services:
     environment:
       DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/bayaro_pos"
       AUTH_SECRET: "${AUTH_SECRET}"
+      AUTH_URL: "https://pos.bayaro.id"
+      AUTH_TRUST_HOST: "true"
       NEXTAUTH_URL: "https://pos.bayaro.id"
       UPLOAD_DIR: "./public/uploads"
       GEMINI_API_KEY: "${GEMINI_API_KEY}"
