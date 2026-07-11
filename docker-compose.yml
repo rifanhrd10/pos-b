@@ -33,7 +33,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: sh -c "node_modules/.bin/prisma migrate deploy && node server.js"
 
 volumes:
   postgres_data:
