@@ -57,9 +57,9 @@ jobs:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.VPS_HOST_POS }}
-          username: ${{ secrets.VPS_USER_POS }}
-          key: ${{ secrets.VPS_SSH_KEY_POS }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /var/www/bayaro/pos-b
             echo "AUTH_SECRET=${{ secrets.AUTH_SECRET }}" > .env
