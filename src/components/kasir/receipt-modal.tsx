@@ -107,6 +107,7 @@ export function ReceiptModal({
   const [printed, setPrinted] = useState(false);
   const [usbToast, setUsbToast] = useState<string | null>(null);
   const [btToast, setBtToast] = useState<string | null>(null);
+  const [showBtConfirm, setShowBtConfirm] = useState(false);
 
   const charWidth = paperWidth === 58 ? 32 : 48;
   const divider = "─".repeat(charWidth);
@@ -185,7 +186,7 @@ export function ReceiptModal({
     }
   };
 
-  const handleBtPrint = async () => {
+  const actualBtPrint = async () => {
     const printer = new WebBluetoothPrinter();
     if (!WebBluetoothPrinter.isSupported()) {
       setBtToast("Browser Anda tidak mendukung Web Bluetooth (gunakan Chrome)");
@@ -203,6 +204,15 @@ export function ReceiptModal({
       setBtToast("Gagal mencetak via Bluetooth");
       setTimeout(() => setBtToast(null), 3000);
     }
+  };
+
+  const handleBtPrint = () => {
+    setShowBtConfirm(true);
+  };
+
+  const confirmBtPrint = async () => {
+    setShowBtConfirm(false);
+    await actualBtPrint();
   };
 
   return (
@@ -499,6 +509,46 @@ export function ReceiptModal({
           </div>
         </div>
       </div>
+
+      {/* Bluetooth Confirmation Modal */}
+      {showBtConfirm && (
+        <div className="no-print fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 border border-slate-100">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                <Bluetooth className="w-8 h-8 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">
+                  Print via Bluetooth?
+                </h3>
+                <p className="text-sm text-slate-600">
+                  Pastikan printer Bluetooth sudah terhubung sebelum melanjutkan.
+                </p>
+                <p className="text-xs text-slate-500 mt-2">
+                  Jika belum terhubung, buka <span className="font-semibold">Pengaturan → Printer</span> terlebih dahulu.
+                </p>
+              </div>
+              <div className="flex gap-3 w-full pt-2">
+                <button
+                  onClick={() => setShowBtConfirm(false)}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-colors"
+                  type="button"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmBtPrint}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors shadow-lg shadow-blue-200"
+                  type="button"
+                >
+                  Lanjutkan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
