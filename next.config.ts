@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  // output: 'standalone', // Temporarily disabled to test Server Actions
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**" },
