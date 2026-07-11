@@ -196,9 +196,9 @@ export function PaymentModal({
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 grid grid-cols-1 md:grid-cols-12 h-[550px]">
+      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 grid grid-cols-1 md:grid-cols-12 max-h-[95vh] h-auto md:h-[650px]">
         {/* Left Column: Transaction Summary */}
-        <div className="md:col-span-4 bg-slate-50 p-6 border-r border-slate-150 flex flex-col justify-between">
+        <div className="md:col-span-4 bg-slate-50 p-6 border-r border-slate-150 flex flex-col justify-between overflow-y-auto">
           <div className="space-y-4">
             <div>
               <button
@@ -271,7 +271,7 @@ export function PaymentModal({
         </div>
 
         {/* Right Column: Payment Methods */}
-        <div className="md:col-span-8 p-6 flex flex-col justify-between bg-white">
+        <div className="md:col-span-8 p-6 flex flex-col justify-between bg-white overflow-y-auto">
           {/* Method Selector */}
           <div className="grid grid-cols-2 gap-4 flex-shrink-0">
             <button
