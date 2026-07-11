@@ -1,0 +1,6 @@
+{
+  "name": "POS Kasir F&B",
+  "description": "Aplikasi Point of Sale (POS) Kasir F&B dan Restoran yang dioptimalkan khusus untuk perangkat Tablet dalam mode Landscape.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

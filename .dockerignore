@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+README.md
+.DS_Store
+*.log
+npm-debug.log*
+.vercel
+.superpowers
+docs
+pos-kasir-f&b
+out.css
+tsconfig.tsbuildinfo
