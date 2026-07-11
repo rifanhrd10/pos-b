@@ -4,12 +4,23 @@ import { useState } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 
+type OutletOption = {
+  id: string;
+  name: string;
+};
+
+type PlanInfo = {
+  name: string;
+  displayName: string;
+  status: string;
+};
+
 function DashboardFooter() {
   return (
     <footer className="border-t border-slate-200 bg-white px-6 py-4">
       <div className="flex flex-col gap-2 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
-        <p>Bayaro POS Full Access</p>
-        <p>Dashboard, kasir, transaksi, laporan, dan pengaturan outlet dalam satu sistem.</p>
+        <p>Bayaro Admin Template</p>
+        <p>Dashboard, tabel, form, kalender, kanban, dan komponen UI lengkap dalam satu template.</p>
       </div>
     </footer>
   );
@@ -17,11 +28,25 @@ function DashboardFooter() {
 
 export function DashboardShell({
   userName,
+  userRole,
+  businessName,
   outletName,
+  permissions,
+  planFeatures,
+  outlets,
+  activeOutletId,
+  plan,
   children,
 }: {
   userName: string;
+  userRole: string;
+  businessName: string;
   outletName: string;
+  permissions: string[];
+  planFeatures?: string[];
+  outlets: OutletOption[];
+  activeOutletId: string | null;
+  plan?: PlanInfo | null;
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -33,13 +58,21 @@ export function DashboardShell({
         collapsed={collapsed}
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
+        permissions={permissions}
+        planFeatures={planFeatures}
+        businessName={businessName}
+        outletName={outletName}
       />
       <div className="flex min-h-screen min-w-0 flex-col">
         <div className="sticky top-0 z-30 border-b border-slate-200 bg-[#f7faff]/95 px-4 py-4 backdrop-blur md:px-6">
           <Topbar
             userName={userName}
+            userRole={userRole}
             outletName={outletName}
             collapsed={collapsed}
+            outlets={outlets}
+            activeOutletId={activeOutletId}
+            plan={plan}
             onToggleSidebar={() => {
               if (window.innerWidth >= 1024) {
                 setCollapsed((value) => !value);
@@ -50,9 +83,7 @@ export function DashboardShell({
           />
         </div>
         <main className="flex-1 px-4 py-4 md:px-6 md:py-5">
-          <div className="min-h-full rounded-[28px] border border-white/60 bg-white/42 p-4 shadow-[0_20px_50px_rgba(15,23,42,0.06)] backdrop-blur md:p-5">
-            {children}
-          </div>
+          {children}
         </main>
         <DashboardFooter />
       </div>

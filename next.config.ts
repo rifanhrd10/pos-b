@@ -1,16 +1,23 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  distDir: process.env.NEXT_DIST_DIR || ".next",
   images: {
-    remotePatterns: [],
+    remotePatterns: [
+      { protocol: "https", hostname: "**" },
+    ],
   },
-  webpack: (config, { dev }) => {
-    if (dev) {
-      config.cache = false;
-    }
-
-    return config;
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "4mb",
+    },
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/api/wilayah/:path*",
+        destination: "https://wilayah.id/api/:path*",
+      },
+    ];
   },
 };
 

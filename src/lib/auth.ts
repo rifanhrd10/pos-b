@@ -1,84 +1,114 @@
+import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
-const SESSION_COOKIE = "bayaro_session";
-const secret = new TextEncoder().encode(process.env.AUTH_SECRET || "bayaro-dev-secret-key");
+export const { handlers, signIn, signOut, auth } = NextAuth({
+  session: { strategy: "jwt", maxAge: 8 * 60 * 60 }, // 8 hours
+  pages: {
+    signIn: "/login",
+  },
+  providers: [
+    Credentials({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
 
-type SessionPayload = {
-  sub: string;
-  name: string;
-  email: string;
-  role: string;
-  outletId?: string | null;
-};
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email as string },
+        });
 
-export async function createSession(payload: SessionPayload) {
-  const token = await new SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setSubject(payload.sub)
-    .setIssuedAt()
-    .setExpirationTime("7d")
-    .sign(secret);
+        if (!user) return null;
 
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+        const isValid = await bcrypt.compare(
+          credentials.password as string,
+          user.password
+        );
+
+        if (!isValid) return null;
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.avatar,
+          role: user.role,
+        };
+      },
+    }),
+  ],
+  callbacks: {
+    async jwt({ token, user, trigger, session }) {
+      if (user) {
+        token.id = user.id;
+        token.role = (user as any).role || "user";
+      }
+
+      if (trigger === "signIn" && user) {
+        const [business, dbUser] = await Promise.all([
+          prisma.business.findFirst({
+            where: { ownerId: user.id as string },
+            select: { onboardingStep: true, onboardingDone: true },
+            orderBy: { createdAt: "desc" },
+          }),
+          prisma.user.findUnique({
+            where: { id: user.id as string },
+            select: { hasCompletedTour: true, role: true },
+          }),
+        ]);
+
+        token.onboardingStep = business?.onboardingStep ?? 1;
+        token.onboardingDone = business?.onboardingDone ?? false;
+        token.hasCompletedTour = dbUser?.hasCompletedTour ?? false;
+        token.role = dbUser?.role || "user";
+      }
+
+      if (trigger === "update" && session) {
+        if (session.onboardingStep !== undefined)
+          token.onboardingStep = session.onboardingStep;
+        if (session.onboardingDone !== undefined)
+          token.onboardingDone = session.onboardingDone;
+        if (session.hasCompletedTour !== undefined)
+          token.hasCompletedTour = session.hasCompletedTour;
+      }
+
+      return token;
+    },
+    async session({ session, token }) {
+      if (token?.id) {
+        session.user.id = token.id as string;
+      }
+      if (token.role !== undefined)
+        session.user.role = token.role as string;
+      if (token.onboardingStep !== undefined)
+        session.user.onboardingStep = token.onboardingStep as number;
+      if (token.onboardingDone !== undefined)
+        session.user.onboardingDone = token.onboardingDone as boolean;
+      if (token.hasCompletedTour !== undefined)
+        session.user.hasCompletedTour = token.hasCompletedTour as boolean;
+      return session;
+    },
+  },
+});
+
+// Helper to get business context from session
+export async function getBusinessContext(userId: string) {
+  const business = await prisma.business.findFirst({
+    where: { ownerId: userId },
+    include: { outlets: { where: { isActive: true }, take: 1 } },
   });
-}
 
-export async function clearSession() {
-  const cookieStore = await cookies();
-  cookieStore.delete(SESSION_COOKIE);
-}
-
-export async function getSession() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-
-  try {
-    const verified = await jwtVerify(token, secret);
-    return verified.payload as SessionPayload;
-  } catch {
-    return null;
-  }
-}
-
-export async function requireSession() {
-  const session = await getSession();
-  if (!session) {
-    redirect("/login");
-  }
-  return session;
-}
-
-export async function authenticate(email: string, password: string) {
-  const user = await prisma.user.findUnique({
-    where: { email },
-    include: { role: true },
-  });
-
-  if (!user || !user.isActive || user.deletedAt) {
-    return null;
-  }
-
-  const matches = await bcrypt.compare(password, user.passwordHash);
-  if (!matches) {
-    return null;
-  }
+  if (!business) return null;
 
   return {
-    sub: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role.name,
-    outletId: user.outletId,
+    businessId: business.id,
+    businessName: business.name,
+    businessLogo: business.logo,
+    outletId: business.outlets[0]?.id || null,
+    outletName: business.outlets[0]?.name || null,
   };
 }

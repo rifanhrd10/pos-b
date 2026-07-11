@@ -5,7 +5,7 @@ export function Badge({
   tone = "default",
 }: {
   children: React.ReactNode;
-  tone?: "default" | "success" | "warning" | "info";
+  tone?: "default" | "success" | "warning" | "info" | "danger";
 }) {
   return (
     <span
@@ -15,6 +15,7 @@ export function Badge({
         tone === "success" && "bg-emerald-100 text-emerald-700",
         tone === "warning" && "bg-amber-100 text-amber-700",
         tone === "info" && "bg-cyan-100 text-cyan-700",
+        tone === "danger" && "bg-rose-100 text-rose-700",
       )}
     >
       {children}
