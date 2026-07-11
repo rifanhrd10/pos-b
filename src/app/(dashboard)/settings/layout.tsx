@@ -3,7 +3,6 @@ import { SettingsNavLink } from "./settings-nav-link"
 const settingsNav = [
   { label: "Profil Bisnis", href: "/settings/business", icon: "Building2" },
   { label: "Pajak & Service", href: "/settings/tax", icon: "Receipt" },
-  { label: "Template Struk", href: "/settings/receipt", icon: "FileText" },
   { label: "Metode Pembayaran", href: "/settings/payment", icon: "CreditCard" },
   { label: "General", href: "/settings/general", icon: "Settings" },
   { label: "Akun", href: "/settings/account", icon: "User" },

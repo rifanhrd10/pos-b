@@ -2,7 +2,7 @@ import { auth, getBusinessContext } from "@/lib/auth";
 import { getPromos } from "@/actions/promo";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -105,11 +105,11 @@ export default async function PromosPage() {
                       </Badge>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <Link href={`/promos/${promo.id}/edit`}>
-                        <Button variant="ghost" className="text-xs">
-                          Edit
-                        </Button>
-                      </Link>
+                      <div className="flex items-center justify-end">
+                        <Link href={`/promos/${promo.id}/edit`} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700">
+                          <Pencil size={15} />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))

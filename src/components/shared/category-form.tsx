@@ -62,7 +62,7 @@ export function CategoryForm({ mode, category }: CategoryFormProps) {
           )}
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Nama Kategori *</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Nama Kategori <span className="text-red-500">*</span></label>
             <Input
               name="name"
               required

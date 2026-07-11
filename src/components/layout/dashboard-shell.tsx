@@ -9,6 +9,12 @@ type OutletOption = {
   name: string;
 };
 
+type PlanInfo = {
+  name: string;
+  displayName: string;
+  status: string;
+};
+
 function DashboardFooter() {
   return (
     <footer className="border-t border-slate-200 bg-white px-6 py-4">
@@ -22,17 +28,25 @@ function DashboardFooter() {
 
 export function DashboardShell({
   userName,
+  userRole,
+  businessName,
   outletName,
   permissions,
+  planFeatures,
   outlets,
   activeOutletId,
+  plan,
   children,
 }: {
   userName: string;
+  userRole: string;
+  businessName: string;
   outletName: string;
   permissions: string[];
+  planFeatures?: string[];
   outlets: OutletOption[];
   activeOutletId: string | null;
+  plan?: PlanInfo | null;
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -45,15 +59,20 @@ export function DashboardShell({
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
         permissions={permissions}
+        planFeatures={planFeatures}
+        businessName={businessName}
+        outletName={outletName}
       />
       <div className="flex min-h-screen min-w-0 flex-col">
         <div className="sticky top-0 z-30 border-b border-slate-200 bg-[#f7faff]/95 px-4 py-4 backdrop-blur md:px-6">
           <Topbar
             userName={userName}
+            userRole={userRole}
             outletName={outletName}
             collapsed={collapsed}
             outlets={outlets}
             activeOutletId={activeOutletId}
+            plan={plan}
             onToggleSidebar={() => {
               if (window.innerWidth >= 1024) {
                 setCollapsed((value) => !value);

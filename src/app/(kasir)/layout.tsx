@@ -19,7 +19,7 @@ export default async function KasirLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-50 antialiased">
+    <div className="min-h-screen bg-slate-50 text-slate-800 antialiased">
       {children}
     </div>
   );

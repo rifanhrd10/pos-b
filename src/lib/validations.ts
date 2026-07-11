@@ -46,6 +46,7 @@ export const outletSchema = z.object({
   name: z.string().min(2, "Nama outlet minimal 2 karakter"),
   address: z.string().optional(),
   city: z.string().optional(),
+  province: z.string().optional(),
   phone: z.string().optional(),
   openTime: z.string().optional(),
   closeTime: z.string().optional(),

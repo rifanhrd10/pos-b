@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { Pencil, Trash2 } from "lucide-react";
 
 const users = [
   { id: 1, name: "Budi Santoso", email: "budi@bayaro.id", role: "Admin", status: "active", date: "1 Jan 2024" },
@@ -176,13 +177,13 @@ export default function TablesPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-500">{user.date}</td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" className="h-8 px-3 py-1 text-xs">
-                            Edit
-                          </Button>
-                          <Button variant="danger" className="h-8 px-3 py-1 text-xs">
-                            Hapus
-                          </Button>
+                        <div className="flex items-center gap-1 justify-end">
+                          <button className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700">
+                            <Pencil size={15} />
+                          </button>
+                          <button className="rounded-xl p-2 text-rose-500 hover:bg-rose-50 hover:text-rose-700">
+                            <Trash2 size={15} />
+                          </button>
                         </div>
                       </td>
                     </tr>

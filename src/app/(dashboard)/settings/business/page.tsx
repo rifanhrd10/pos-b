@@ -1,5 +1,5 @@
 import { auth, getBusinessContext } from "@/lib/auth"
-import { getBusinessSettings } from "@/actions/settings"
+import { getBusinessSettings, getStoreCode } from "@/actions/settings"
 import { redirect } from "next/navigation"
 import { BusinessForm } from "./business-form"
 
@@ -12,7 +12,10 @@ export default async function BusinessSettingsPage() {
   const ctx = await getBusinessContext(session.user.id)
   if (!ctx) redirect("/dashboard")
 
-  const data = await getBusinessSettings()
+  const [data, storeCode] = await Promise.all([
+    getBusinessSettings(),
+    getStoreCode(),
+  ])
 
   return (
     <div className="space-y-6">
@@ -20,7 +23,7 @@ export default async function BusinessSettingsPage() {
         <h1 className="text-2xl font-bold text-slate-900">Profil Bisnis</h1>
         <p className="text-sm text-slate-500">Kelola informasi bisnis Anda</p>
       </div>
-      <BusinessForm business={data?.business ?? null} />
+      <BusinessForm business={data?.business ?? null} storeCode={storeCode} />
     </div>
   )
 }

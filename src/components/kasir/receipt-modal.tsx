@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Printer, Usb, Bluetooth } from "lucide-react";
+import { X, Printer, Usb, Bluetooth, CheckCircle2, RefreshCw } from "lucide-react";
 import { WebSerialPrinter } from "@/lib/printer/web-serial";
 import { WebBluetoothPrinter } from "@/lib/printer/web-bluetooth";
 import { buildReceipt, type ReceiptData, type PaperWidth } from "@/lib/printer/receipt-builder";
@@ -80,11 +80,8 @@ const formatCurrency = (amount: number) =>
 const formatDateTime = (date: Date | string) => {
   const d = new Date(date);
   return d.toLocaleString("id-ID", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    dateStyle: "medium",
+    timeStyle: "short",
   });
 };
 
@@ -106,6 +103,8 @@ export function ReceiptModal({
   onClose,
 }: ReceiptModalProps) {
   const [paperWidth, setPaperWidth] = useState<PaperWidth>(paperWidthProp);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [printed, setPrinted] = useState(false);
   const [usbToast, setUsbToast] = useState<string | null>(null);
   const [btToast, setBtToast] = useState<string | null>(null);
 
@@ -116,12 +115,16 @@ export function ReceiptModal({
   const header2 = receiptSettings?.header2 ?? businessAddress;
   const header3 = receiptSettings?.header3 ?? businessPhone;
   const showKasir = receiptSettings?.showKasir !== false;
-  const thankYouMessage =
-    receiptSettings?.thankYou || "Terima kasih atas kunjungan Anda!";
+  const thankYouMessage = receiptSettings?.thankYou || "Terima kasih atas kunjungan Anda!";
 
   const handlePrint = () => {
-    if (onPrint) onPrint();
-    window.print();
+    setIsPrinting(true);
+    setTimeout(() => {
+      setIsPrinting(false);
+      setPrinted(true);
+      if (onPrint) onPrint();
+      window.print();
+    }, 800);
   };
 
   const buildReceiptData = (): ReceiptData => ({
@@ -215,7 +218,7 @@ export function ReceiptModal({
 
       {/* Print-only area */}
       <div className="receipt-print-area">
-        <div className={`receipt-paper ${paperWidth === 58 ? "w-58mm" : "w-80mm"}`}>
+        <div style={{ fontFamily: "monospace", fontSize: "12px", width: paperWidth === 58 ? "58mm" : "80mm", padding: "4px" }}>
           <div style={{ textAlign: "center", fontWeight: "bold" }}>{header1}</div>
           {header2 && <div style={{ textAlign: "center" }}>{header2}</div>}
           {header3 && <div style={{ textAlign: "center" }}>{header3}</div>}
@@ -244,10 +247,10 @@ export function ReceiptModal({
             <div>{padRow("Diskon:", `-${formatCurrency(order.discountAmount)}`, charWidth)}</div>
           )}
           {order.taxAmount > 0 && (
-            <div>{padRow(`PPN (${order.taxRate ?? ""}%):`, `+${formatCurrency(order.taxAmount)}`, charWidth)}</div>
+            <div>{padRow("Pajak:", `+${formatCurrency(order.taxAmount)}`, charWidth)}</div>
           )}
           {order.serviceAmount > 0 && (
-            <div>{padRow(`Service (${order.serviceRate ?? ""}%):`, `+${formatCurrency(order.serviceAmount)}`, charWidth)}</div>
+            <div>{padRow("Service:", `+${formatCurrency(order.serviceAmount)}`, charWidth)}</div>
           )}
           <div>{divider}</div>
           <div style={{ fontWeight: "bold" }}>{padRow("TOTAL:", formatCurrency(order.totalAmount), charWidth)}</div>
@@ -273,203 +276,226 @@ export function ReceiptModal({
       </div>
 
       {/* Modal UI */}
-      <div className="no-print fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm flex flex-col max-h-[90vh]">
-          {/* Modal header */}
-          <div className="flex items-center justify-between p-4 border-b border-slate-100">
-            <h2 className="font-semibold text-slate-800">Struk Pembayaran</h2>
-            <div className="flex items-center gap-2">
-              {/* Paper width toggle */}
-              <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
-                <button
-                  onClick={() => setPaperWidth(58)}
-                  className={`px-2 py-1 font-medium transition-colors ${
-                    paperWidth === 58
-                      ? "bg-slate-800 text-white"
-                      : "bg-white text-slate-500 hover:bg-slate-50"
-                  }`}
-                >
-                  58mm
-                </button>
-                <button
-                  onClick={() => setPaperWidth(80)}
-                  className={`px-2 py-1 font-medium transition-colors ${
-                    paperWidth === 80
-                      ? "bg-slate-800 text-white"
-                      : "bg-white text-slate-500 hover:bg-slate-50"
-                  }`}
-                >
-                  80mm
-                </button>
-              </div>
-              <button
-                onClick={onClose}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-                aria-label="Tutup"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      <div className="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
+          {/* Success Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white text-center flex flex-col items-center flex-shrink-0">
+            <CheckCircle2 className="w-12 h-12 text-white mb-2" />
+            <h3 className="text-lg font-bold tracking-tight">Pembayaran Sukses!</h3>
+            <p className="text-xs text-blue-100 mt-1">
+              Transaksi berhasil diproses.
+            </p>
           </div>
 
-          {/* Receipt preview */}
-          <div className="flex-1 overflow-y-auto p-4 bg-slate-50">
-            <div
-              className={`receipt-paper mx-auto bg-white shadow-sm p-3 ${
-                paperWidth === 58 ? "w-58mm" : "w-80mm"
-              }`}
-            >
-              {/* Header */}
-              <div className="text-center font-bold">{header1}</div>
-              {header2 && <div className="text-center">{header2}</div>}
-              {header3 && <div className="text-center">{header3}</div>}
-              <div className="my-1">{divider}</div>
+          {/* Thermal Receipt Preview */}
+          <div className="flex-1 overflow-y-auto p-6 bg-slate-100/50">
+            <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-inner max-w-sm mx-auto font-mono text-[11px] text-slate-800 space-y-3 relative overflow-hidden">
+              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
 
-              {/* Order info */}
-              <div>No: {order.orderNumber}</div>
-              <div>Tgl: {formatDateTime(payment.paidAt)}</div>
-              {showKasir && <div>Kasir: {kasirName}</div>}
-              <div>
-                Tipe: {order.orderType === "DINE_IN" ? "Dine In" : "Takeaway"}
-                {order.tableName ? ` | Meja: ${order.tableName}` : ""}
+              {/* Header */}
+              <div className="text-center space-y-0.5">
+                <h4 className="text-sm font-black text-slate-900 tracking-tight uppercase">{header1}</h4>
+                {header2 && <p className="text-[10px] text-slate-400">{header2}</p>}
+                {header3 && <p className="text-[9px] text-slate-400">{header3}</p>}
               </div>
-              <div className="my-1">{divider}</div>
+
+              <div className="border-t border-dashed border-slate-300"></div>
+
+              {/* Meta */}
+              <div className="space-y-0.5 text-slate-500">
+                <div className="flex justify-between">
+                  <span>Order:</span>
+                  <span className="text-slate-800 font-semibold">{order.orderNumber}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Waktu:</span>
+                  <span className="text-slate-800">{formatDateTime(payment.paidAt)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Tipe:</span>
+                  <span className="text-slate-800 font-semibold uppercase">
+                    {order.orderType === "DINE_IN" ? "Dine In" : "Takeaway"}
+                    {order.tableName ? ` | ${order.tableName}` : ""}
+                  </span>
+                </div>
+                {showKasir && (
+                  <div className="flex justify-between">
+                    <span>Kasir:</span>
+                    <span className="text-slate-800">{kasirName}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-dashed border-slate-300"></div>
 
               {/* Items */}
-              {order.items.map((item) => (
-                <div key={item.id} className="space-y-0.5">
-                  <div className="font-medium">
-                    {item.name}
-                    {item.variantName ? ` (${item.variantName})` : ""}
-                  </div>
-                  <div className="flex justify-between">
-                    <span>
-                      &nbsp;&nbsp;{item.quantity} x {formatCurrency(item.price)}
-                    </span>
-                    <span>{formatCurrency(item.subtotal)}</span>
-                  </div>
-                  {item.toppings.map((t) => (
-                    <div key={t.id} className="flex justify-between">
-                      <span>&nbsp;&nbsp;+ {t.name}</span>
-                      <span>{formatCurrency(t.price)}</span>
+              <div className="space-y-1.5">
+                {order.items.map((item) => (
+                  <div key={item.id} className="space-y-0.5">
+                    <div className="flex justify-between text-slate-900 font-bold">
+                      <span className="line-clamp-1">
+                        {item.name}
+                        {item.variantName ? ` (${item.variantName})` : ""}
+                      </span>
+                      <span className="font-semibold">{formatCurrency(item.subtotal)}</span>
                     </div>
-                  ))}
-                  {item.notes && (
-                    <div className="text-slate-500">&nbsp;&nbsp;* {item.notes}</div>
-                  )}
-                </div>
-              ))}
-              <div className="my-1">{divider}</div>
+                    <div className="flex justify-between text-slate-400 text-[10px]">
+                      <span>{item.quantity} x {formatCurrency(item.price)}</span>
+                      {item.notes && <span className="italic text-amber-700">({item.notes})</span>}
+                    </div>
+                    {item.toppings.map((t) => (
+                      <div key={t.id} className="flex justify-between text-slate-400 text-[10px]">
+                        <span>+ {t.name}</span>
+                        <span>{formatCurrency(t.price)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t border-dashed border-slate-300"></div>
 
               {/* Totals */}
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 text-slate-600">
                 <div className="flex justify-between">
-                  <span>Subtotal</span>
+                  <span>Subtotal:</span>
                   <span>{formatCurrency(order.subtotal)}</span>
                 </div>
                 {order.discountAmount > 0 && (
-                  <div className="flex justify-between">
-                    <span>
-                      Diskon
-                      {order.promos && order.promos.length > 0
-                        ? ` (${order.promos.map((p) => p.promo.name).join(", ")})`
-                        : ""}
-                    </span>
+                  <div className="flex justify-between text-emerald-700">
+                    <span>Diskon:</span>
                     <span>-{formatCurrency(order.discountAmount)}</span>
                   </div>
                 )}
                 {order.taxAmount > 0 && (
                   <div className="flex justify-between">
-                    <span>PPN{order.taxRate ? ` (${order.taxRate}%)` : ""}</span>
-                    <span>+{formatCurrency(order.taxAmount)}</span>
+                    <span>Pajak{order.taxRate ? ` (${order.taxRate}%)` : ""}:</span>
+                    <span>{formatCurrency(order.taxAmount)}</span>
                   </div>
                 )}
                 {order.serviceAmount > 0 && (
                   <div className="flex justify-between">
-                    <span>Service{order.serviceRate ? ` (${order.serviceRate}%)` : ""}</span>
-                    <span>+{formatCurrency(order.serviceAmount)}</span>
+                    <span>Service{order.serviceRate ? ` (${order.serviceRate}%)` : ""}:</span>
+                    <span>{formatCurrency(order.serviceAmount)}</span>
                   </div>
                 )}
+                <div className="flex justify-between text-slate-950 font-black border-t border-dotted border-slate-300 pt-1.5 text-xs">
+                  <span>TOTAL AKHIR:</span>
+                  <span className="text-emerald-700">{formatCurrency(order.totalAmount)}</span>
+                </div>
               </div>
-              <div className="my-1">{divider}</div>
 
-              <div className="flex justify-between font-bold">
-                <span>TOTAL</span>
-                <span>{formatCurrency(order.totalAmount)}</span>
-              </div>
-              <div className="my-1">{divider}</div>
+              <div className="border-t border-dashed border-slate-300"></div>
 
               {/* Payment */}
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 text-slate-500">
                 <div className="flex justify-between">
-                  <span>{payment.method === "CASH" ? "Tunai" : payment.method}</span>
-                  <span>
-                    {payment.method === "CASH" && payment.cashEntered
-                      ? formatCurrency(payment.cashEntered)
-                      : formatCurrency(payment.totalAmount)}
+                  <span>Tipe Bayar:</span>
+                  <span className="text-slate-800 font-bold">
+                    {payment.method === "CASH" ? "Tunai" : payment.method}
                   </span>
                 </div>
-                {payment.method === "CASH" &&
-                  payment.changeAmount != null && (
+                {payment.method === "CASH" && payment.cashEntered != null && (
+                  <>
                     <div className="flex justify-between">
-                      <span>Kembali</span>
-                      <span>{formatCurrency(payment.changeAmount)}</span>
+                      <span>Uang Masuk:</span>
+                      <span className="text-slate-800">{formatCurrency(payment.cashEntered)}</span>
                     </div>
-                  )}
+                    {payment.changeAmount != null && (
+                      <div className="flex justify-between font-bold text-slate-800">
+                        <span>Kembalian:</span>
+                        <span>{formatCurrency(payment.changeAmount)}</span>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
-              <div className="my-1">{divider}</div>
+
+              <div className="border-t border-dashed border-slate-300"></div>
 
               {/* Footer */}
-              <div className="text-center mt-2">
-                <div>{thankYouMessage}</div>
-                {receiptSettings?.footer && (
-                  <div className="mt-1">{receiptSettings.footer}</div>
-                )}
+              <div className="text-center text-[10px] text-slate-400 space-y-0.5">
+                <p className="font-semibold">{thankYouMessage}</p>
+                {receiptSettings?.footer && <p className="text-[9px]">{receiptSettings.footer}</p>}
               </div>
             </div>
           </div>
 
-          {/* Action buttons */}
-          <div className="p-4 border-t border-slate-100 space-y-2">
-            {/* Toast notifications */}
-            {usbToast && (
-              <div className="text-xs text-rose-600 bg-rose-50 rounded-lg px-3 py-2">
-                {usbToast}
+          {/* Actions */}
+          <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-2 flex-shrink-0">
+            {/* Paper width toggle */}
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <span className="text-[10px] text-slate-400 font-medium">Lebar kertas:</span>
+              <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
+                <button
+                  onClick={() => setPaperWidth(58)}
+                  className={`px-2.5 py-1 font-medium transition-colors ${
+                    paperWidth === 58 ? "bg-slate-800 text-white" : "bg-white text-slate-500 hover:bg-slate-50"
+                  }`}
+                  type="button"
+                >
+                  58mm
+                </button>
+                <button
+                  onClick={() => setPaperWidth(80)}
+                  className={`px-2.5 py-1 font-medium transition-colors ${
+                    paperWidth === 80 ? "bg-slate-800 text-white" : "bg-white text-slate-500 hover:bg-slate-50"
+                  }`}
+                  type="button"
+                >
+                  80mm
+                </button>
               </div>
+            </div>
+
+            {usbToast && (
+              <div className="text-xs text-rose-600 bg-rose-50 rounded-lg px-3 py-2">{usbToast}</div>
             )}
             {btToast && (
-              <div className="text-xs text-rose-600 bg-rose-50 rounded-lg px-3 py-2">
-                {btToast}
-              </div>
+              <div className="text-xs text-rose-600 bg-rose-50 rounded-lg px-3 py-2">{btToast}</div>
             )}
 
             <button
               onClick={handlePrint}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 transition-colors"
+              disabled={isPrinting}
+              className={`w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                printed
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                  : "bg-white hover:bg-slate-50 border-slate-250 text-slate-700 active:scale-95"
+              }`}
+              type="button"
             >
-              <Printer className="h-4 w-4" />
-              Print (Browser)
+              <Printer className="w-4 h-4" />
+              {isPrinting ? "Mencetak..." : printed ? "Struk Berhasil Dicetak!" : "Cetak Struk (Browser)"}
             </button>
 
             {WebSerialPrinter.isSupported() && (
               <button
                 onClick={handleUsbPrint}
-                className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                className="w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+                type="button"
               >
-                <Usb className="h-4 w-4" />
-                Print via USB
+                <Usb className="w-3.5 h-3.5" /> Print via USB
               </button>
             )}
 
             {WebBluetoothPrinter.isSupported() && (
               <button
                 onClick={handleBtPrint}
-                className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                className="w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+                type="button"
               >
-                <Bluetooth className="h-4 w-4" />
-                Print via Bluetooth
+                <Bluetooth className="w-3.5 h-3.5" /> Print via Bluetooth
               </button>
             )}
+
+            <button
+              onClick={onClose}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-blue-100 flex items-center justify-center gap-1.5 cursor-pointer"
+              type="button"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Buat Transaksi Baru
+            </button>
           </div>
         </div>
       </div>

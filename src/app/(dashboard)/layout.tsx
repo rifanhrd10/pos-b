@@ -5,7 +5,7 @@ import { ALL_PERMISSIONS, getCurrentEmployeePermissions } from "@/lib/permission
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getActiveOutletId } from "@/lib/outlet-context";
-import { Toaster } from "react-hot-toast";
+import { Toaster } from "sonner";
 
 export const dynamic = "force-dynamic";
 
@@ -25,26 +25,45 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   const businessId = ctx.businessId;
-  const employeePermissions = await getCurrentEmployeePermissions(session.user.id!, businessId);
+  const employee = await prisma.employee.findFirst({
+    where: { userId: session.user.id, businessId, isActive: true },
+    include: { role: true },
+  });
+  const employeePermissions = (employee?.role?.permissions as string[]) ?? [];
   const permissions = employeePermissions.length > 0 ? employeePermissions : ALL_PERMISSIONS;
+  const userRole = employee?.role?.name || "Admin";
   const hasCompletedTour = session?.user?.hasCompletedTour ?? true;
 
   const outlets = await prisma.outlet.findMany({
     where: { businessId, isActive: true },
-    select: { id: true, name: true },
+    select: { id: true, name: true, isActive: true },
     orderBy: { createdAt: "asc" },
   });
   const activeOutletId = await getActiveOutletId();
   const outletName = outlets.find((o) => o.id === activeOutletId)?.name || ctx.businessName;
 
+  // Fetch subscription/plan info
+  const subscription = await prisma.subscription.findUnique({
+    where: { businessId },
+    include: { plan: true },
+  });
+  const plan = subscription
+    ? { name: subscription.plan.name, displayName: subscription.plan.displayName, status: subscription.status }
+    : null;
+  const planFeatures = (subscription?.plan.features as string[]) || [];
+
   return (
     <>
       <DashboardShell
         userName={userName}
+        userRole={userRole}
+        businessName={ctx.businessName}
         outletName={outletName}
         permissions={permissions}
+        planFeatures={planFeatures}
         outlets={outlets}
         activeOutletId={activeOutletId}
+        plan={plan}
       >
         {children}
       </DashboardShell>

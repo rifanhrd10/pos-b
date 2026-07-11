@@ -33,7 +33,7 @@ export async function getBusinessSettings() {
       where: { id: authCtx.businessId },
       select: {
         id: true, name: true, type: true, phone: true, email: true,
-        address: true, province: true, logo: true,
+        address: true, city: true, province: true, logo: true,
         taxRate: true, serviceRate: true, currency: true,
         openTime: true, closeTime: true,
       },
@@ -62,6 +62,7 @@ export async function updateBusinessProfile(formData: FormData) {
       phone: (formData.get("phone") as string) || undefined,
       email: (formData.get("email") as string) || undefined,
       address: (formData.get("address") as string) || undefined,
+      city: (formData.get("city") as string) || undefined,
       province: (formData.get("province") as string) || undefined,
     }
 
@@ -80,6 +81,53 @@ export async function updateBusinessProfile(formData: FormData) {
   } catch (_e) {
     return { success: false, error: "Gagal menyimpan profil bisnis" }
   }
+}
+
+// ─── KODE TOKO ───────────────────────────────────────────────────────────────
+
+export async function generateStoreCode() {
+  try {
+    const authCtx = await getAuthContext()
+    if (!authCtx) return { success: false, error: "Unauthorized" }
+
+    // Generate a random 8-char alphanumeric code
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    let code = ""
+    for (let i = 0; i < 8; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+
+    // Ensure uniqueness
+    const existing = await prisma.business.findUnique({ where: { storeCode: code } })
+    if (existing) {
+      // Retry once with different code
+      code = ""
+      for (let i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length))
+      }
+    }
+
+    await prisma.business.update({
+      where: { id: authCtx.businessId },
+      data: { storeCode: code },
+    })
+
+    revalidatePath("/settings/business")
+    return { success: true, storeCode: code }
+  } catch (_e) {
+    return { success: false, error: "Gagal generate kode toko" }
+  }
+}
+
+export async function getStoreCode() {
+  const authCtx = await getAuthContext()
+  if (!authCtx) return null
+
+  const business = await prisma.business.findUnique({
+    where: { id: authCtx.businessId },
+    select: { storeCode: true },
+  })
+  return business?.storeCode ?? null
 }
 
 // ─── TAX SETTINGS ────────────────────────────────────────────────────────────

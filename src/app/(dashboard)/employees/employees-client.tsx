@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, Plus, Pencil, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
@@ -12,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Modal } from "@/components/ui/modal";
 import { EmptyState } from "@/components/shared/empty-state";
-import { toggleEmployeeStatus, deleteEmployee } from "@/actions/employees";
+import { toggleEmployeeStatus, deleteEmployee, createEmployee, updateEmployee } from "@/actions/employees";
+import { toast } from "sonner";
 
 type Employee = {
   id: string;
@@ -20,6 +20,7 @@ type Employee = {
   email: string | null;
   phone: string | null;
   isActive: boolean;
+  pin: string | null;
   role: { id: string; name: string } | null;
   outlets: { outlet: { id: string; name: string } }[];
 };
@@ -38,10 +39,18 @@ export function EmployeesClient({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState("");
   const [filterOutlet, setFilterOutlet] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Form Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [selectedOutlets, setSelectedOutlets] = useState<string[]>([]);
+  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
+  const [error, setError] = useState("");
 
   const filtered = employees.filter((emp) => {
     const matchSearch =
@@ -53,20 +62,81 @@ export function EmployeesClient({
     return matchSearch && matchRole && matchOutlet;
   });
 
-  function handleToggle(id: string) {
+  function handleToggle(id: string, currentStatus: boolean) {
     startTransition(async () => {
-      await toggleEmployeeStatus(id);
-      router.refresh();
+      const res = await toggleEmployeeStatus(id);
+      if (res.error) {
+        toast.error("Gagal mengubah status: " + res.error);
+      } else {
+        toast.success(`Karyawan berhasil di${currentStatus ? 'nonaktifkan' : 'aktifkan'}`);
+        router.refresh();
+      }
     });
   }
 
   function handleDelete() {
     if (!deleteId) return;
     startTransition(async () => {
-      await deleteEmployee(deleteId);
-      setDeleteId(null);
-      router.refresh();
+      const res = await deleteEmployee(deleteId);
+      if ((res as any).error) {
+        toast.error("Gagal menghapus karyawan");
+      } else {
+        toast.success("Karyawan berhasil dihapus");
+        setDeleteId(null);
+        router.refresh();
+      }
     });
+  }
+
+  function openCreateModal() {
+    setEditingEmployee(null);
+    setSelectedOutlets([]);
+    setSelectedRoleId("");
+    setError("");
+    setIsModalOpen(true);
+  }
+
+  function openEditModal(emp: Employee) {
+    setEditingEmployee(emp);
+    setSelectedOutlets(emp.outlets.map(o => o.outlet.id));
+    setSelectedRoleId(emp.role?.id || "");
+    setError("");
+    setIsModalOpen(true);
+  }
+
+  function toggleOutlet(id: string) {
+    setSelectedOutlets((prev) =>
+      prev.includes(id) ? prev.filter((o) => o !== id) : [...prev, id]
+    );
+  }
+
+  async function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError("");
+    setIsSubmitting(true);
+    const form = new FormData(e.currentTarget);
+    form.set("outletIds", JSON.stringify(selectedOutlets));
+
+    try {
+      let result;
+      if (editingEmployee) {
+        result = await updateEmployee(editingEmployee.id, form);
+      } else {
+        result = await createEmployee(form);
+      }
+
+      if (result.error) {
+        setError(result.error);
+      } else {
+        toast.success(`Karyawan berhasil di${editingEmployee ? 'perbarui' : 'tambahkan'}`);
+        setIsModalOpen(false);
+        router.refresh();
+      }
+    } catch (err: any) {
+      setError(err.message || "Terjadi kesalahan");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -76,12 +146,10 @@ export function EmployeesClient({
         description="Kelola semua karyawan bisnis Anda"
         breadcrumb="Operasional / Karyawan"
         actions={
-          <Link href="/employees/new">
-            <Button>
-              <Plus size={16} className="mr-2" />
-              Tambah Karyawan
-            </Button>
-          </Link>
+          <Button onClick={openCreateModal}>
+            <Plus size={16} className="mr-2" />
+            Tambah Karyawan
+          </Button>
         }
       />
 
@@ -144,15 +212,16 @@ export function EmployeesClient({
                     </div>
                   </td>
                   <td className="px-5 py-4">
-                    <Switch checked={emp.isActive} onChange={() => handleToggle(emp.id)} />
+                    <Switch checked={emp.isActive} onChange={() => handleToggle(emp.id, emp.isActive)} />
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2">
-                      <Link href={`/employees/${emp.id}/edit`}>
-                        <button className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700">
-                          <Pencil size={15} />
-                        </button>
-                      </Link>
+                      <button 
+                        onClick={() => openEditModal(emp)}
+                        className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                      >
+                        <Pencil size={15} />
+                      </button>
                       <button
                         onClick={() => setDeleteId(emp.id)}
                         className="rounded-xl p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-600"
@@ -179,6 +248,97 @@ export function EmployeesClient({
             {isPending ? "Menghapus..." : "Hapus"}
           </Button>
         </div>
+      </Modal>
+
+      {/* Employee Form Modal */}
+      <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingEmployee ? "Edit Karyawan" : "Tambah Karyawan"}>
+        <form onSubmit={handleFormSubmit} className="space-y-4">
+          {error && (
+            <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+          )}
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Nama Lengkap <span className="text-red-500">*</span></label>
+            <Input name="name" required placeholder="Nama karyawan" defaultValue={editingEmployee?.name} />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Email</label>
+              <Input name="email" type="email" placeholder="email@contoh.com" defaultValue={editingEmployee?.email || ""} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">No. Telepon</label>
+              <Input name="phone" type="tel" placeholder="08xxxxxxxxxx" defaultValue={editingEmployee?.phone || ""} />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Role <span className="text-red-500">*</span></label>
+            <Select 
+              name="roleId" 
+              required 
+              value={selectedRoleId}
+              onChange={(e) => setSelectedRoleId(e.target.value)}
+            >
+              <option value="">Pilih role...</option>
+              {roles.map((r) => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </Select>
+          </div>
+
+          {roles.find(r => r.id === selectedRoleId)?.name.toLowerCase() === 'kasir' && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">PIN (untuk kasir)</label>
+              <Input 
+                name="pin" 
+                type="password" 
+                inputMode="numeric"
+                pattern="\d*"
+                placeholder="4-6 digit PIN" 
+                maxLength={6} 
+                defaultValue={editingEmployee?.pin || ""} 
+                onInput={(e) => {
+                  e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "");
+                }}
+              />
+              {editingEmployee && <p className="text-xs text-slate-500 mt-1">Biarkan kosong jika tidak ingin mengubah PIN.</p>}
+            </div>
+          )}
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              Penempatan Outlet *
+            </label>
+            <div className="max-h-[150px] overflow-y-auto space-y-1 rounded-xl border border-slate-200 p-3 bg-slate-50/50">
+              {outlets.length === 0 ? (
+                <p className="text-sm text-slate-400 p-2">Belum ada outlet terdaftar.</p>
+              ) : (
+                outlets.map((outlet) => (
+                  <label key={outlet.id} className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-white transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={selectedOutlets.includes(outlet.id)}
+                      onChange={() => toggleOutlet(outlet.id)}
+                      className="h-4 w-4 rounded border-slate-300 text-bayaro-navy focus:ring-bayaro-blue"
+                    />
+                    <span className="text-sm text-slate-700">{outlet.name}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
+            <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>
+              Batal
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

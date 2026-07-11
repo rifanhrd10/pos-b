@@ -2,7 +2,7 @@ import { auth, getBusinessContext } from "@/lib/auth";
 import { getProducts } from "@/actions/products";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search, Filter, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -86,11 +86,11 @@ export default async function ProductsPage() {
                       </Badge>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <Link href={`/products/${product.id}/edit`}>
-                        <Button variant="ghost">
-                          Edit
-                        </Button>
-                      </Link>
+                      <div className="flex items-center justify-end">
+                        <Link href={`/products/${product.id}/edit`} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700">
+                          <Pencil size={15} />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))

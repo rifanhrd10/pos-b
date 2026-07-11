@@ -21,7 +21,6 @@ export default async function NewPromoPage() {
       <PromoForm
         businessId={ctx.businessId}
         products={products.map((p) => ({ id: p.id, name: p.name, basePrice: p.basePrice }))}
-        onSuccess={() => {}}
       />
     </div>
   );

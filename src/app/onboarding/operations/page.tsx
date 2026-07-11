@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { setupOperations } from "@/actions/onboarding";
 import { cn } from "@/lib/utils";
 import { useOnboardingStore } from "@/hooks/use-onboarding-store";
+import { TimePicker } from "@/components/ui/time-picker";
 
 type ShiftForm = {
   name: string;
@@ -117,27 +118,11 @@ export default function OperationsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block font-label-md text-label-md text-on-surface mb-2">Jam Buka <span className="text-error">*</span></label>
-              <div className="relative">
-                <input
-                  required
-                  type="time"
-                  className="block w-full px-3 py-3 border border-outline-variant/50 rounded-lg text-on-surface font-body-md text-body-md focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-surface-container-lowest"
-                  value={openTime}
-                  onChange={(e) => setOpenTime(e.target.value)}
-                />
-              </div>
+              <TimePicker value={openTime} onChange={setOpenTime} />
             </div>
             <div>
               <label className="block font-label-md text-label-md text-on-surface mb-2">Jam Tutup <span className="text-error">*</span></label>
-              <div className="relative">
-                <input
-                  required
-                  type="time"
-                  className="block w-full px-3 py-3 border border-outline-variant/50 rounded-lg text-on-surface font-body-md text-body-md focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-surface-container-lowest"
-                  value={closeTime}
-                  onChange={(e) => setCloseTime(e.target.value)}
-                />
-              </div>
+              <TimePicker value={closeTime} onChange={setCloseTime} />
             </div>
           </div>
           <p className="font-body-md text-sm text-on-surface-variant mt-3">
@@ -218,22 +203,16 @@ export default function OperationsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
                       <label className="block font-label-md text-label-md text-on-surface mb-2">Jam Mulai <span className="text-error">*</span></label>
-                      <input
-                        required
-                        type="time"
-                        className="block w-full px-3 py-3 border border-outline-variant/50 rounded-lg text-on-surface font-body-md text-body-md focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-surface-container-lowest"
+                      <TimePicker
                         value={shift.startTime}
-                        onChange={(e) => updateShift(index, "startTime", e.target.value)}
+                        onChange={(val) => updateShift(index, "startTime", val)}
                       />
                     </div>
                     <div>
                       <label className="block font-label-md text-label-md text-on-surface mb-2">Jam Selesai <span className="text-error">*</span></label>
-                      <input
-                        required
-                        type="time"
-                        className="block w-full px-3 py-3 border border-outline-variant/50 rounded-lg text-on-surface font-body-md text-body-md focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-surface-container-lowest"
+                      <TimePicker
                         value={shift.endTime}
-                        onChange={(e) => updateShift(index, "endTime", e.target.value)}
+                        onChange={(val) => updateShift(index, "endTime", val)}
                       />
                     </div>
                   </div>

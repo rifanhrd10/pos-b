@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { formatRp, formatDate } from "@/lib/format";
 import Link from "next/link";
 import { Clock } from "lucide-react";
+import { ShiftsFilters } from "./shifts-filters";
 
 interface PageProps {
   searchParams: Promise<{
@@ -74,59 +75,16 @@ export default async function ShiftsPage({ searchParams }: PageProps) {
       />
 
       {/* Filter bar */}
-      <form className="flex flex-wrap items-center gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3">
-        <select
-          name="employee"
-          defaultValue={employee ?? ""}
-          className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Semua Kasir</option>
-          {employees.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          name="outlet"
-          defaultValue={outlet ?? ""}
-          className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Semua Outlet</option>
-          {outlets.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.name}
-            </option>
-          ))}
-        </select>
-
-        <input
-          type="date"
-          name="start"
-          defaultValue={start ?? ""}
-          className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      <div className="bg-white border border-slate-200 rounded-xl px-4 py-3">
+        <ShiftsFilters
+          employees={employees}
+          outlets={outlets}
+          defaultEmployee={employee}
+          defaultOutlet={outlet}
+          defaultStart={start}
+          defaultEnd={end}
         />
-        <input
-          type="date"
-          name="end"
-          defaultValue={end ?? ""}
-          className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-
-        <button
-          type="submit"
-          className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-        >
-          Filter
-        </button>
-        <Link
-          href="/shifts"
-          className="text-sm text-slate-500 hover:text-slate-700 px-2 py-2"
-        >
-          Reset
-        </Link>
-      </form>
+      </div>
 
       {/* Table */}
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">

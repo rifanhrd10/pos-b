@@ -69,6 +69,16 @@ export async function loginUser(formData: FormData) {
       return { error: signInResult.error };
     }
 
+    // Check if user is itadmin for redirect
+    const user = await prisma.user.findUnique({
+      where: { email: raw.email },
+      select: { role: true },
+    });
+
+    if (user?.role === "itadmin") {
+      return { success: true, redirectTo: "/itadmin/dashboard" };
+    }
+
     return { success: true };
   } catch (error) {
     if (error && typeof error === "object" && "type" in error && error.type === "CredentialsSignin") {

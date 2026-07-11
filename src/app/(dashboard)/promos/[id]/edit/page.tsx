@@ -54,7 +54,6 @@ export default async function EditPromoPage({ params }: { params: Promise<{ id: 
             freeQty: item.freeQty,
           })),
         }}
-        onSuccess={() => {}}
       />
     </div>
   );

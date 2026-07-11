@@ -2,16 +2,28 @@
 
 import React, { useState, useEffect } from "react";
 import Select from "react-select";
-import { useOnboardingStore } from "@/hooks/use-onboarding-store";
 
 interface Option {
   value: string;
   label: string;
 }
 
-export default function RegionSelects() {
-  const { business, setBusiness } = useOnboardingStore();
-  
+interface RegionSelectsProps {
+  defaultValues?: {
+    province?: string | null;
+    city?: string | null;
+    district?: string | null;
+    village?: string | null;
+  };
+  onChange?: (data: {
+    province: string;
+    city: string;
+    district: string;
+    village: string;
+  }) => void;
+}
+
+export default function RegionSelects({ defaultValues, onChange }: RegionSelectsProps) {
   const [provinces, setProvinces] = useState<Option[]>([]);
   const [regencies, setRegencies] = useState<Option[]>([]);
   const [districts, setDistricts] = useState<Option[]>([]);
@@ -40,8 +52,8 @@ export default function RegionSelects() {
           setProvinces(provinceOptions);
           
           // Restore saved province if exists
-          if (business.province) {
-            const savedProv = provinceOptions.find((p: Option) => p.label === business.province);
+          if (defaultValues?.province) {
+            const savedProv = provinceOptions.find((p: Option) => p.label === defaultValues.province);
             if (savedProv) {
               setSelectedProvince(savedProv);
               // Trigger cascade load for city/district/village
@@ -68,8 +80,8 @@ export default function RegionSelects() {
           setRegencies(regencyOptions);
           
           // Restore saved city if exists
-          if (business.city) {
-            const savedCity = regencyOptions.find((c: Option) => c.label === business.city);
+          if (defaultValues?.city) {
+            const savedCity = regencyOptions.find((c: Option) => c.label === defaultValues.city);
             if (savedCity) {
               setSelectedRegency(savedCity);
               loadDistricts(savedCity.value);
@@ -94,8 +106,8 @@ export default function RegionSelects() {
           setDistricts(districtOptions);
           
           // Restore saved district if exists
-          if (business.district) {
-            const savedDistrict = districtOptions.find((d: Option) => d.label === business.district);
+          if (defaultValues?.district) {
+            const savedDistrict = districtOptions.find((d: Option) => d.label === defaultValues.district);
             if (savedDistrict) {
               setSelectedDistrict(savedDistrict);
               loadVillages(savedDistrict.value);
@@ -120,8 +132,8 @@ export default function RegionSelects() {
           setVillages(villageOptions);
           
           // Restore saved village if exists
-          if (business.subdistrict) {
-            const savedVillage = villageOptions.find((v: Option) => v.label === business.subdistrict);
+          if (defaultValues?.village) {
+            const savedVillage = villageOptions.find((v: Option) => v.label === defaultValues.village);
             if (savedVillage) {
               setSelectedVillage(savedVillage);
             }
@@ -129,6 +141,17 @@ export default function RegionSelects() {
         }
       })
       .finally(() => setLoadingVillage(false));
+  };
+
+  const notifyChange = (prov: Option | null, city: Option | null, dist: Option | null, vill: Option | null) => {
+    if (onChange) {
+      onChange({
+        province: prov?.label || "",
+        city: city?.label || "",
+        district: dist?.label || "",
+        village: vill?.label || "",
+      });
+    }
   };
 
   const handleProvinceChange = (option: Option | null) => {
@@ -140,8 +163,8 @@ export default function RegionSelects() {
     setDistricts([]);
     setVillages([]);
     
+    notifyChange(option, null, null, null);
     if (option) {
-      setBusiness({ province: option.label });
       loadRegencies(option.value);
     }
   };
@@ -153,8 +176,8 @@ export default function RegionSelects() {
     setDistricts([]);
     setVillages([]);
     
+    notifyChange(selectedProvince, option, null, null);
     if (option) {
-      setBusiness({ city: option.label });
       loadDistricts(option.value);
     }
   };
@@ -164,17 +187,15 @@ export default function RegionSelects() {
     setSelectedVillage(null);
     setVillages([]);
     
+    notifyChange(selectedProvince, selectedRegency, option, null);
     if (option) {
-      setBusiness({ district: option.label });
       loadVillages(option.value);
     }
   };
 
   const handleVillageChange = (option: Option | null) => {
     setSelectedVillage(option);
-    if (option) {
-      setBusiness({ subdistrict: option.label });
-    }
+    notifyChange(selectedProvince, selectedRegency, selectedDistrict, option);
   };
 
   const customClassNames = {

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -170,7 +171,7 @@ export function ProductForm({ mode, businessId, product }: ProductFormProps) {
 
           <div className="grid gap-5 md:grid-cols-2">
             <div className="md:col-span-2">
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Nama Produk *</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Nama Produk <span className="text-red-500">*</span></label>
               <Input name="name" required placeholder="Contoh: Cappuccino" defaultValue={product?.name ?? ""} />
             </div>
 
@@ -202,7 +203,7 @@ export function ProductForm({ mode, businessId, product }: ProductFormProps) {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Harga Jual *</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Harga Jual <span className="text-red-500">*</span></label>
               <Input name="basePrice" type="number" min="0" step="0.01" required defaultValue={product?.basePrice ?? 0} />
             </div>
 
@@ -288,13 +289,14 @@ export function ProductForm({ mode, businessId, product }: ProductFormProps) {
                     value={variant.stock ?? 0}
                     onChange={(event) => updateVariant(index, "stock", event.target.value)}
                   />
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
+                    className="flex h-10 w-10 items-center justify-center rounded-xl text-rose-500 transition-colors hover:bg-rose-50 hover:text-rose-700"
                     onClick={() => setVariants((current) => current.filter((_, currentIndex) => currentIndex !== index))}
+                    title="Hapus"
                   >
-                    Hapus
-                  </Button>
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -327,13 +329,14 @@ export function ProductForm({ mode, businessId, product }: ProductFormProps) {
                     value={topping.price}
                     onChange={(event) => updateTopping(index, "price", event.target.value)}
                   />
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
+                    className="flex h-10 w-10 items-center justify-center rounded-xl text-rose-500 transition-colors hover:bg-rose-50 hover:text-rose-700"
                     onClick={() => setToppings((current) => current.filter((_, currentIndex) => currentIndex !== index))}
+                    title="Hapus"
                   >
-                    Hapus
-                  </Button>
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               ))}
             </div>

@@ -2,7 +2,7 @@ import { auth, getBusinessContext } from "@/lib/auth";
 import { getCustomers } from "@/actions/customers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatRp, formatDate, timeAgo } from "@/lib/format";
 import { ExportExcelButton } from "@/components/shared/export-excel-button";
@@ -133,11 +133,11 @@ export default async function CustomersPage({
                       {customer.lastVisit ? timeAgo(new Date(customer.lastVisit)) : "-"}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <Link href={`/customers/${customer.id}/edit`}>
-                        <Button variant="ghost" className="text-xs">
-                          Edit
-                        </Button>
-                      </Link>
+                      <div className="flex items-center justify-end">
+                        <Link href={`/customers/${customer.id}/edit`} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700">
+                          <Pencil size={15} />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))

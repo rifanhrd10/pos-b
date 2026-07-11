@@ -86,7 +86,9 @@ export function OutletSwitcher({
               </div>
               <div className="flex-1 text-left">
                 <p className="truncate">{outlet.name}</p>
-                {!outlet.isActive && (
+                {outlet.isActive ? (
+                  <p className="text-xs text-emerald-600">Aktif</p>
+                ) : (
                   <p className="text-xs text-amber-600">Nonaktif</p>
                 )}
               </div>
@@ -96,9 +98,9 @@ export function OutletSwitcher({
 
           <div className="my-1 border-t border-slate-100" />
 
-          {/* Add Outlet Link */}
+          {/* Manage Outlet Link */}
           <Link
-            href="/outlets/new"
+            href="/outlets"
             onClick={() => setOpen(false)}
             className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-bayaro-navy hover:bg-slate-50"
           >

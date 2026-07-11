@@ -32,7 +32,7 @@ export default function LoginPage() {
       setError(result.error);
       setLoading(false);
     } else {
-      router.push("/dashboard");
+      router.push(result?.redirectTo || "/dashboard");
     }
   }
 
@@ -48,7 +48,7 @@ export default function LoginPage() {
 
         {/* Top Header */}
         <header className="relative z-10 flex justify-between items-center w-full px-12 py-8">
-          <BayaroLogo dark />
+          <BayaroLogo dark white />
           <div className="bg-white/5 backdrop-blur-xl px-4 py-1.5 rounded-full border border-white/10">
             <span className="flex items-center gap-2 font-label-md text-label-md text-white/90">
               <span className="w-1.5 h-1.5 rounded-full bg-secondary-container animate-pulse"></span>

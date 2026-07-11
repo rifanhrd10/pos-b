@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { X, DollarSign, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ShieldCheck, DollarSign, LogOut, Info, Sparkles } from "lucide-react";
 import { openSession, closeSession, previewShiftClose, type ShiftSummary } from "@/actions/kasir";
 
 interface ShiftModalProps {
@@ -21,6 +21,13 @@ interface ReconciliationPreview {
   expectedCash: number;
 }
 
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(amount);
+
 export function ShiftModal({
   mode,
   employeeId,
@@ -31,20 +38,13 @@ export function ShiftModal({
   onSuccess,
   onCancel,
 }: ShiftModalProps) {
-  const [initialCash, setInitialCash] = useState(0);
+  const [initialCash, setInitialCash] = useState(200000);
   const [closingCash, setClosingCash] = useState(0);
   const [isPending, startTransition] = useTransition();
   const [isLoadingPreview, startPreviewTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<ReconciliationPreview | null>(null);
   const [showReconciliation, setShowReconciliation] = useState(false);
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(amount);
 
   const handleOpenShift = () => {
     setError(null);
@@ -55,7 +55,6 @@ export function ShiftModal({
         businessId,
         initialCash,
       });
-
       if (result.error) {
         setError(result.error);
       } else if (result.session) {
@@ -100,145 +99,131 @@ export function ShiftModal({
     setPreview(null);
   };
 
-  const quickAmounts = [0, 100000, 200000, 500000];
+  const handleShortcutAmount = (amount: number) => {
+    if (mode === "open") {
+      setInitialCash(amount);
+    } else {
+      setClosingCash(amount);
+    }
+  };
 
   const difference = preview ? closingCash - preview.expectedCash : 0;
   const isPositive = difference >= 0;
   const isZero = difference === 0;
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 w-full max-w-md">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-slate-50">
-            {mode === "open" ? "Buka Shift" : "Tutup Shift"}
-          </h2>
-          {onCancel && (
-            <button
-              onClick={onCancel}
-              className="text-slate-400 hover:text-slate-50 transition-colors"
-              disabled={isPending || isLoadingPreview}
-            >
-              <X className="w-6 h-6" />
-            </button>
-          )}
+        <div className="bg-gradient-to-r from-slate-800 to-slate-950 p-6 text-white flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 bg-white/10 rounded-lg">
+                <ShieldCheck className="w-5 h-5 text-blue-400" />
+              </span>
+              <h3 className="text-lg font-bold tracking-tight">
+                {mode === "open" ? "Sesi Shift Baru (Open Shift)" : "Tutup Sesi Kasir (Close Shift)"}
+              </h3>
+            </div>
+          </div>
+          <span className="text-[10px] uppercase font-mono tracking-widest px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-blue-400 font-bold">
+            SYSTEM
+          </span>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-xl text-red-300 text-sm">
-            {error}
-          </div>
-        )}
+        <div className="p-6 space-y-5">
+          {mode === "open" ? (
+            /* ═══ OPEN SHIFT ═══ */
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3">
+                <Sparkles className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-blue-800 leading-relaxed">
+                  <p className="font-semibold">Buka Laci Uang (Drawer Balance)</p>
+                  <p className="mt-0.5 text-blue-700/90">
+                    Silakan masukkan modal laci awal Anda sebelum memulai shift hari ini.
+                  </p>
+                </div>
+              </div>
 
-        {mode === "open" ? (
-          <>
-            {/* Open mode */}
-            <div className="mb-6">
-              <label className="block text-slate-300 text-sm font-medium mb-3">
-                Modal Awal Kas
-              </label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="text"
-                  value={initialCash === 0 ? "" : initialCash.toString()}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, "");
-                    setInitialCash(val ? parseInt(val, 10) : 0);
-                  }}
-                  placeholder="0"
-                  className="
-                    w-full pl-11 pr-4 py-3 bg-slate-700 border border-slate-600
-                    rounded-xl text-slate-50 placeholder-slate-400
-                    focus:outline-none focus:ring-2 focus:ring-blue-500
-                  "
-                  disabled={isPending}
-                />
-              </div>
-              <div className="mt-3 text-slate-300 text-sm font-medium">
-                {formatCurrency(initialCash)}
-              </div>
-              <div className="mt-3 flex gap-2">
-                {quickAmounts.map((amount) => (
-                  <button
-                    key={amount}
-                    onClick={() => setInitialCash(amount)}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-700 tracking-wide uppercase">
+                  MODAL SALDO AWAL (IDR)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-slate-400">
+                    Rp
+                  </span>
+                  <input
+                    type="number"
+                    value={initialCash || ""}
+                    onChange={(e) => setInitialCash(parseInt(e.target.value) || 0)}
+                    placeholder="0"
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 text-xl font-bold text-slate-800 pl-11 pr-4 py-3 rounded-xl transition-all outline-none"
+                    autoFocus
                     disabled={isPending}
-                    className="
-                      flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300
-                      text-xs rounded-lg transition-colors cursor-pointer
-                      disabled:opacity-50 disabled:cursor-not-allowed
-                    "
-                  >
-                    {amount === 0 ? "Rp 0" : `${amount / 1000}rb`}
-                  </button>
-                ))}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-xs text-slate-400 block font-medium">Rekomendasi Nominal:</span>
+                <div className="flex flex-wrap gap-2">
+                  {[100000, 150000, 200000, 300000].map((amount) => (
+                    <button
+                      key={amount}
+                      type="button"
+                      onClick={() => handleShortcutAmount(amount)}
+                      disabled={isPending}
+                      className={`text-xs px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                        initialCash === amount
+                          ? "bg-blue-50 border-blue-500 text-blue-700 font-semibold"
+                          : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600"
+                      }`}
+                    >
+                      {formatCurrency(amount)}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-
-            <button
-              onClick={handleOpenShift}
-              disabled={isPending}
-              className="
-                w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold
-                rounded-xl transition-all duration-150 cursor-pointer active:scale-95
-                disabled:opacity-50 disabled:cursor-not-allowed
-              "
-            >
-              {isPending ? "Membuka..." : "Buka Shift"}
-            </button>
-          </>
-        ) : showReconciliation && preview ? (
-          <>
-            {/* Reconciliation summary */}
-            <div className="mb-6 rounded-xl border border-slate-600 overflow-hidden">
-              <div className="bg-slate-700/50 px-4 py-3 border-b border-slate-600">
-                <h3 className="text-slate-200 font-semibold text-sm">Ringkasan Shift</h3>
-              </div>
-              <div className="divide-y divide-slate-700">
-                <div className="flex justify-between items-center px-4 py-3">
-                  <span className="text-slate-400 text-sm">Kas Awal</span>
-                  <span className="text-slate-200 text-sm font-medium">
-                    {formatCurrency(preview.initialCash)}
-                  </span>
+          ) : showReconciliation && preview ? (
+            /* ═══ RECONCILIATION ═══ */
+            <div className="space-y-4">
+              <div className="rounded-xl border border-slate-200 overflow-hidden">
+                <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
+                  <h3 className="text-slate-700 font-semibold text-sm">Ringkasan Shift</h3>
                 </div>
-                <div className="flex justify-between items-center px-4 py-3">
-                  <span className="text-slate-400 text-sm">Penjualan Cash</span>
-                  <span className="text-slate-200 text-sm font-medium">
-                    {formatCurrency(preview.cashSales)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center px-4 py-3 bg-slate-700/30">
-                  <span className="text-slate-300 text-sm font-semibold">Expected di Laci</span>
-                  <span className="text-slate-50 text-sm font-bold">
-                    {formatCurrency(preview.expectedCash)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center px-4 py-3">
-                  <span className="text-slate-400 text-sm">Kas Aktual (input)</span>
-                  <span className="text-slate-200 text-sm font-medium">
-                    {formatCurrency(closingCash)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center px-4 py-3 bg-slate-700/30">
-                  <span className="text-slate-300 text-sm font-semibold">Selisih</span>
-                  <div className="flex items-center gap-2">
-                    {isZero ? (
-                      <Minus className="w-4 h-4 text-slate-400" />
-                    ) : isPositive ? (
-                      <TrendingUp className="w-4 h-4 text-emerald-400" />
-                    ) : (
-                      <TrendingDown className="w-4 h-4 text-red-400" />
-                    )}
+                <div className="divide-y divide-slate-100">
+                  <div className="flex justify-between items-center px-4 py-3">
+                    <span className="text-slate-500 text-sm">Kas Awal</span>
+                    <span className="text-slate-800 text-sm font-medium font-mono">
+                      {formatCurrency(preview.initialCash)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 py-3">
+                    <span className="text-slate-500 text-sm">Penjualan Cash</span>
+                    <span className="text-slate-800 text-sm font-medium font-mono">
+                      {formatCurrency(preview.cashSales)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 py-3 bg-slate-50">
+                    <span className="text-slate-700 text-sm font-semibold">Expected di Laci</span>
+                    <span className="text-slate-900 text-sm font-bold font-mono">
+                      {formatCurrency(preview.expectedCash)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 py-3">
+                    <span className="text-slate-500 text-sm">Kas Aktual (input)</span>
+                    <span className="text-slate-800 text-sm font-medium font-mono">
+                      {formatCurrency(closingCash)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 py-3 bg-slate-50">
+                    <span className="text-slate-700 text-sm font-semibold">Selisih</span>
                     <div className="text-right">
                       <div
-                        className={`text-sm font-bold ${
-                          isZero
-                            ? "text-slate-300"
-                            : isPositive
-                            ? "text-emerald-400"
-                            : "text-red-400"
+                        className={`text-sm font-bold font-mono ${
+                          isZero ? "text-slate-600" : isPositive ? "text-emerald-600" : "text-rose-600"
                         }`}
                       >
                         {isPositive && !isZero ? "+" : ""}
@@ -246,89 +231,117 @@ export function ShiftModal({
                       </div>
                       <div
                         className={`text-xs ${
-                          isZero
-                            ? "text-slate-500"
-                            : isPositive
-                            ? "text-emerald-600"
-                            : "text-red-600"
+                          isZero ? "text-slate-400" : isPositive ? "text-emerald-500" : "text-rose-500"
                         }`}
                       >
-                        {isZero ? "seimbang" : isPositive ? "surplus" : "deficit"}
+                        {isZero ? "Seimbang" : isPositive ? "Surplus" : "Defisit"}
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+          ) : (
+            /* ═══ CLOSE SHIFT — INPUT ═══ */
+            <div className="space-y-4">
+              {summary && (
+                <div className="grid grid-cols-2 gap-3.5 bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
+                  <div className="space-y-1">
+                    <span className="text-xs text-slate-400 block">Total Transaksi</span>
+                    <span className="font-semibold text-slate-800">{summary.totalOrders} Transaksi</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs text-slate-400 block">Omset Shift</span>
+                    <span className="font-bold text-blue-600 font-mono">{formatCurrency(summary.totalRevenue)}</span>
+                  </div>
+                </div>
+              )}
 
-            <div className="flex gap-3">
-              <button
-                onClick={handleBackToInput}
-                disabled={isPending}
-                className="
-                  flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold
-                  rounded-xl transition-all duration-150 cursor-pointer active:scale-95
-                  disabled:opacity-50 disabled:cursor-not-allowed
-                "
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleConfirmClose}
-                disabled={isPending}
-                className="
-                  flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold
-                  rounded-xl transition-all duration-150 cursor-pointer active:scale-95
-                  disabled:opacity-50 disabled:cursor-not-allowed
-                "
-              >
-                {isPending ? "Menutup..." : "Konfirmasi Tutup Shift"}
-              </button>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-700 tracking-wide uppercase">
+                  MASUKKAN UANG FISIK DI LACI (IDR)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-slate-400">
+                    Rp
+                  </span>
+                  <input
+                    type="number"
+                    value={closingCash || ""}
+                    onChange={(e) => setClosingCash(parseInt(e.target.value) || 0)}
+                    placeholder="Masukkan total uang fisik di laci"
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-rose-500 focus:bg-white focus:ring-2 focus:ring-rose-100 text-xl font-bold text-slate-800 pl-11 pr-4 py-3 rounded-xl transition-all outline-none"
+                    autoFocus
+                    disabled={isPending || isLoadingPreview}
+                  />
+                </div>
+                <div className="mt-2 text-slate-500 text-sm font-medium font-mono">
+                  {formatCurrency(closingCash)}
+                </div>
+              </div>
             </div>
-          </>
-        ) : (
-          <>
-            {/* Close mode — cash input */}
-            <div className="mb-6">
-              <label className="block text-slate-300 text-sm font-medium mb-3">
-                Kas Aktual di Laci
-              </label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="text"
-                  value={closingCash === 0 ? "" : closingCash.toString()}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, "");
-                    setClosingCash(val ? parseInt(val, 10) : 0);
-                  }}
-                  placeholder="0"
-                  className="
-                    w-full pl-11 pr-4 py-3 bg-slate-700 border border-slate-600
-                    rounded-xl text-slate-50 placeholder-slate-400
-                    focus:outline-none focus:ring-2 focus:ring-blue-500
-                  "
+          )}
+
+          {error && (
+            <p className="text-xs text-rose-600 font-semibold bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-3">
+            {mode === "open" ? (
+              <button
+                type="button"
+                onClick={handleOpenShift}
+                disabled={isPending}
+                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-blue-100 disabled:opacity-50"
+              >
+                {isPending ? "Membuka..." : "Mulai Bekerja (Open Shift)"}
+              </button>
+            ) : showReconciliation ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleBackToInput}
+                  disabled={isPending}
+                  className="flex-1 py-3 border border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold rounded-xl transition-colors cursor-pointer"
+                >
+                  Kembali
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmClose}
+                  disabled={isPending}
+                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-rose-100 disabled:opacity-50"
+                >
+                  <LogOut className="w-4 h-4" /> {isPending ? "Menutup..." : "Tutup Shift & Logout"}
+                </button>
+              </>
+            ) : (
+              <>
+                {onCancel && (
+                  <button
+                    type="button"
+                    onClick={onCancel}
+                    disabled={isPending || isLoadingPreview}
+                    className="flex-1 py-3 border border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold rounded-xl transition-colors cursor-pointer"
+                  >
+                    Kembali
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handlePreviewClose}
                   disabled={isPending || isLoadingPreview}
-                />
-              </div>
-              <div className="mt-3 text-slate-300 text-sm font-medium">
-                {formatCurrency(closingCash)}
-              </div>
-            </div>
-
-            <button
-              onClick={handlePreviewClose}
-              disabled={isPending || isLoadingPreview}
-              className="
-                w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold
-                rounded-xl transition-all duration-150 cursor-pointer active:scale-95
-                disabled:opacity-50 disabled:cursor-not-allowed
-              "
-            >
-              {isLoadingPreview ? "Memuat..." : "Tutup Shift"}
-            </button>
-          </>
-        )}
+                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-rose-100 disabled:opacity-50"
+                >
+                  <LogOut className="w-4 h-4" /> {isLoadingPreview ? "Memuat..." : "Tutup Shift"}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

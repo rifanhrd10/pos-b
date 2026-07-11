@@ -1,7 +1,7 @@
 "use client";
-
 import { useState, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { ShieldCheck, ArrowRight } from "lucide-react";
 import { KasirNavbar } from "@/components/kasir/kasir-navbar";
 import { ShiftModal } from "@/components/kasir/shift-modal";
 import { TableSelection } from "@/components/kasir/table-selection";
@@ -115,10 +115,9 @@ export function PosClient({
   receiptSettings,
 }: PosClientProps) {
   const router = useRouter();
-  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
-  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
-  const [currentOrder, setCurrentOrder] = useState<OrderWithItems | null>(null);
-  const [activeTab, setActiveTab] = useState<"pos" | "laporan">("pos");
+
+  // Session & View states
+  const [activeTab, setActiveTab] = useState<"pos" | "history">("pos");
   const [showShiftModal, setShowShiftModal] = useState(!activeSession);
   const [shiftModalMode, setShiftModalMode] = useState<"open" | "close">("open");
   const [sessionId, setSessionId] = useState<string | null>(activeSession?.id || null);
@@ -126,6 +125,13 @@ export function PosClient({
     activeSession?.openedAt || null
   );
   const [shiftSummary, setShiftSummary] = useState<ShiftSummary | null>(null);
+
+  // POS flow states — matching pos-kasir-f&b App.tsx flow
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
+  const [currentOrder, setCurrentOrder] = useState<OrderWithItems | null>(null);
+
+  // Payment & Receipt modals
   const [showPayModal, setShowPayModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [lastPayment, setLastPayment] = useState<{
@@ -136,13 +142,15 @@ export function PosClient({
     changeAmount?: number | null;
     paidAt: Date | string;
   } | null>(null);
+
   const [isPending, startTransition] = useTransition();
 
+  // ─── Refresh Order ───
   const refreshOrder = useCallback(
     async (orderId: string) => {
       const order = await getOrderWithItems(orderId);
       if (order) {
-        const tableStatus = tableStatuses.find((ts) => ts.tableId === order.tableId || "");
+        const tableStatus = tableStatuses.find((ts) => ts.tableId === (order.tableId || ""));
         setCurrentOrder({
           id: order.id,
           orderNumber: order.orderNumber,
@@ -177,20 +185,22 @@ export function PosClient({
               type: op.promo.type,
             },
           })),
+          customer: order.customer,
         });
       }
     },
     [tableStatuses]
   );
 
+  // ─── Table Selection ───
   const handleSelectTable = useCallback(
     (tableId: string | "takeaway") => {
       if (!sessionId) {
         alert("Buka shift terlebih dahulu");
         return;
       }
-
       setSelectedTableId(tableId);
+
       startTransition(async () => {
         const result = await getOrCreateDraftOrder({
           businessId,
@@ -202,28 +212,7 @@ export function PosClient({
         });
 
         if (result.order) {
-          const order = result.order as {
-            id: string;
-            orderNumber: string;
-            tableId: string | null;
-            orderType: string;
-            subtotal: number;
-            taxAmount: number;
-            serviceAmount: number;
-            discountAmount: number;
-            totalAmount: number;
-            items: Array<{
-              id: string;
-              name: string;
-              variantName: string | null;
-              price: number;
-              quantity: number;
-              subtotal: number;
-              notes: string | null;
-              toppings: Array<{ toppingId: string; name: string; price: number }>;
-            }>;
-          };
-
+          const order = result.order as { id: string };
           setCurrentOrderId(order.id);
           await refreshOrder(order.id);
         } else if (result.error) {
@@ -234,13 +223,20 @@ export function PosClient({
     [sessionId, businessId, outletId, employeeId, refreshOrder]
   );
 
+  // ─── Back to Table Selection (pos-kasir-f&b pattern) ───
+  const handleBackToTables = () => {
+    setSelectedTableId(null);
+    setCurrentOrderId(null);
+    setCurrentOrder(null);
+  };
+
+  // ─── Add Product ───
   const handleAddProduct = useCallback(
     (product: PosProduct, variantId?: string, toppingIds?: string[]) => {
       if (!currentOrderId) {
         alert("Pilih meja terlebih dahulu");
         return;
       }
-
       startTransition(async () => {
         const result = await addOrderItem(currentOrderId, {
           productId: product.id,
@@ -248,7 +244,6 @@ export function PosClient({
           toppingIds,
           quantity: 1,
         });
-
         if (result.ok) {
           await refreshOrder(currentOrderId);
         } else {
@@ -259,10 +254,10 @@ export function PosClient({
     [currentOrderId, refreshOrder]
   );
 
+  // ─── Update Qty ───
   const handleUpdateQty = useCallback(
     (orderItemId: string, qty: number) => {
       if (!currentOrderId) return;
-
       startTransition(async () => {
         const result = await updateOrderItemQty(orderItemId, qty);
         if (result.ok) {
@@ -275,10 +270,10 @@ export function PosClient({
     [currentOrderId, refreshOrder]
   );
 
+  // ─── Remove Item ───
   const handleRemoveItem = useCallback(
     (orderItemId: string) => {
       if (!currentOrderId) return;
-
       startTransition(async () => {
         const result = await removeOrderItem(orderItemId);
         if (result.ok) {
@@ -289,21 +284,22 @@ export function PosClient({
     [currentOrderId, refreshOrder]
   );
 
+  // ─── Pay ───
   const handlePay = () => {
     setShowPayModal(true);
   };
 
+  // ─── Save Bill (Kirim Dapur / Simpan) ───
   const handleSaveBill = () => {
-    alert("Fitur simpan bill akan diimplementasikan di Block E");
+    // Return to table selection, order stays as draft
+    setSelectedTableId(null);
+    setCurrentOrderId(null);
+    setCurrentOrder(null);
   };
 
-  const handleLaporan = () => {
-    setActiveTab("laporan");
-  };
-
+  // ─── Shift Management ───
   const handleCloseShift = async () => {
     if (!sessionId) return;
-
     startTransition(async () => {
       const summary = await getShiftSummary(sessionId);
       setShiftSummary(summary);
@@ -324,10 +320,9 @@ export function PosClient({
     }
   };
 
+  // ─── Payment Success → Show Receipt ───
   const handlePaymentSuccess = async (paymentId: string) => {
     setShowPayModal(false);
-    
-    // Fetch payment details from the order
     if (currentOrderId) {
       const order = await getOrderWithItems(currentOrderId);
       if (order?.payment) {
@@ -344,6 +339,7 @@ export function PosClient({
     }
   };
 
+  // ─── After Receipt → New Order (pos-kasir-f&b handleNewOrderReset) ───
   const handleReceiptClose = () => {
     setShowReceiptModal(false);
     setLastPayment(null);
@@ -353,44 +349,90 @@ export function PosClient({
     router.refresh();
   };
 
+  // ─── Tab Switch ───
+  const handleTabChange = (tab: "pos" | "history") => {
+    setActiveTab(tab);
+    if (tab === "history") {
+      setSelectedTableId(null);
+      setCurrentOrderId(null);
+      setCurrentOrder(null);
+    }
+  };
+
+  // ═══════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════
+
   return (
-    <div className="flex flex-col h-screen bg-slate-900">
+    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
+      {/* ─── Navbar ─── */}
       {sessionId && sessionOpenedAt && (
         <KasirNavbar
           kasirName={kasirName}
           outletName={outletName}
           sessionOpenedAt={sessionOpenedAt}
-          onLaporan={handleLaporan}
-          onCloseShift={handleCloseShift}
           activeTab={activeTab}
+          onTabChange={handleTabChange}
+          onCloseShift={handleCloseShift}
         />
       )}
 
-      {activeTab === "pos" ? (
-        <div className="flex flex-1 overflow-hidden gap-0">
-          {/* Left panel 38% */}
-          <div className="w-[38%] border-r border-slate-700 p-4 overflow-y-auto">
-            <TableSelection
-              tables={tables}
-              tableStatuses={tableStatuses}
-              selectedTableId={selectedTableId}
-              onSelectTable={handleSelectTable}
-            />
+      {/* ─── Main Container ─── */}
+      <main className="flex-1 overflow-hidden flex flex-col">
+        {!sessionId ? (
+          /* ═══ Lock Screen: Shift belum dibuka ═══ */
+          <div className="h-full flex items-center justify-center p-6 bg-slate-50">
+            <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8 text-center max-w-md w-full space-y-5">
+              <div className="w-16 h-16 bg-rose-50 border border-rose-100 rounded-2xl flex items-center justify-center mx-auto text-rose-500">
+                <ShieldCheck className="w-8 h-8" />
+              </div>
+              <div className="space-y-1.5">
+                <h2 className="text-lg font-bold text-slate-800">Sesi Kasir Terkunci</h2>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Silakan buka sesi kasir shift baru terlebih dahulu untuk memasukkan modal saldo awal kasir dan mulai melayani pesanan meja pelanggan.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShiftModalMode("open");
+                  setShowShiftModal(true);
+                }}
+                className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                type="button"
+              >
+                Buka Shift Sekarang <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-
-          {/* Right panel 62% */}
-          <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
-            {/* Product catalog top 60% */}
-            <div className="flex-1 overflow-hidden">
-              <ProductCatalog
-                products={products}
-                categories={categories}
-                onAddProduct={handleAddProduct}
-              />
+        ) : activeTab === "pos" ? (
+          /* ═══ VIEW 1: Core POS — Grid 8:4 (pos-kasir-f&b layout) ═══ */
+          <div className="flex-1 grid grid-cols-12 overflow-hidden">
+            {/* Left col-span-8: TableSelection OR ProductCatalog */}
+            <div className="col-span-8 p-5 overflow-hidden flex flex-col h-full border-r border-slate-200">
+              {selectedTableId ? (
+                <ProductCatalog
+                  products={products}
+                  categories={categories}
+                  onAddProduct={handleAddProduct}
+                  activeTableName={
+                    selectedTableId === "takeaway"
+                      ? "Takeaway"
+                      : tables.find((t) => t.id === selectedTableId)?.name || selectedTableId
+                  }
+                  onBackToTables={handleBackToTables}
+                />
+              ) : (
+                <TableSelection
+                  tables={tables}
+                  tableStatuses={tableStatuses}
+                  selectedTableId={selectedTableId}
+                  onSelectTable={handleSelectTable}
+                />
+              )}
             </div>
 
-            {/* Cart panel bottom 40% */}
-            <div className="h-[45%]">
+            {/* Right col-span-4: CartPanel (ALWAYS visible) */}
+            <div className="col-span-4 h-full overflow-hidden">
               <CartPanel
                 order={currentOrder}
                 businessId={businessId}
@@ -405,17 +447,19 @@ export function PosClient({
               />
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto p-6">
-          <LaporanPanel
-            sessionId={sessionId ?? ""}
-            kasirName={kasirName}
-            outletName={outletName}
-          />
-        </div>
-      )}
+        ) : (
+          /* ═══ VIEW 2: History / Laporan ═══ */
+          <div className="flex-1 p-5 overflow-hidden">
+            <LaporanPanel
+              sessionId={sessionId ?? ""}
+              kasirName={kasirName}
+              outletName={outletName}
+            />
+          </div>
+        )}
+      </main>
 
+      {/* ─── MODALS ─── */}
       {showShiftModal && (
         <ShiftModal
           mode={shiftModalMode}

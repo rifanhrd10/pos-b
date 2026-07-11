@@ -27,9 +27,33 @@ export type PublicOutlet = {
   city: string | null;
 };
 
-export async function getPublicOutlets(): Promise<PublicOutlet[]> {
+export async function verifyStoreCode(
+  code: string
+): Promise<{ ok: true; businessId: string; businessName: string } | { ok: false; error: string }> {
+  if (!code || code.trim().length === 0) {
+    return { ok: false, error: "Kode toko tidak boleh kosong" };
+  }
+
+  const business = await prisma.business.findFirst({
+    where: {
+      storeCode: { equals: code.trim().toUpperCase(), mode: "insensitive" },
+    },
+    select: { id: true, name: true },
+  });
+
+  if (!business) {
+    return { ok: false, error: "Kode toko tidak ditemukan" };
+  }
+
+  return { ok: true, businessId: business.id, businessName: business.name };
+}
+
+export async function getPublicOutlets(businessId?: string): Promise<PublicOutlet[]> {
   const outlets = await prisma.outlet.findMany({
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      ...(businessId ? { businessId } : {}),
+    },
     select: {
       id: true,
       name: true,

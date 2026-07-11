@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 import { createPromo, updatePromo } from "@/actions/promo";
 import { getErrorMessage } from "@/lib/errors";
 import { Plus, Trash2 } from "lucide-react";
@@ -37,7 +38,7 @@ interface PromoFormProps {
     isActive?: boolean;
     bundleItems?: Array<{ productId: string; requiredQty: number; freeQty: number }>;
   };
-  onSuccess: () => void;
+  onSuccess?: () => void;
 }
 
 export function PromoForm({ businessId, products, initialData, onSuccess }: PromoFormProps) {
@@ -124,7 +125,7 @@ export function PromoForm({ businessId, products, initialData, onSuccess }: Prom
         }
       }
 
-      onSuccess();
+      if (onSuccess) onSuccess();
       router.push("/promos");
       router.refresh();
     } catch (err) {
@@ -411,11 +412,11 @@ export function PromoForm({ businessId, products, initialData, onSuccess }: Prom
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">Tanggal Mulai</label>
-            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <DatePicker value={startDate} onChange={setStartDate} />
           </div>
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">Tanggal Selesai</label>
-            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <DatePicker value={endDate} onChange={setEndDate} />
           </div>
           <div className="col-span-2">
             <label className="mb-2 block text-sm font-medium text-slate-700">Batas Penggunaan</label>

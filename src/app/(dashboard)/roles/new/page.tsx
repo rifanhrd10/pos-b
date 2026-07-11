@@ -81,7 +81,7 @@ export default function NewRolePage() {
 
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Nama Role *</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Nama Role <span className="text-red-500">*</span></label>
               <Input name="name" required placeholder="cth: Supervisor" />
             </div>
             <div>

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-export function BayaroLogo({ compact = false, dark = false }: { compact?: boolean; dark?: boolean }) {
+export function BayaroLogo({ compact = false, dark = false, white = false }: { compact?: boolean; dark?: boolean; white?: boolean }) {
   return (
     <Link href="/dashboard" className="flex items-center gap-3">
       <Image
@@ -15,7 +15,7 @@ export function BayaroLogo({ compact = false, dark = false }: { compact?: boolea
         alt="Bayaro POS"
         width={compact ? 44 : 158}
         height={compact ? 44 : 40}
-        className="h-auto"
+        className={`h-auto ${white ? "brightness-0 invert" : ""}`}
         priority
       />
     </Link>

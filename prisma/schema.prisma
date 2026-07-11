@@ -18,6 +18,7 @@ model User {
   password      String
   phone         String?
   avatar        String?
+  role          String    @default("user") // "user" | "itadmin"
   emailVerified    DateTime?
   hasCompletedTour Boolean   @default(false)
   createdAt        DateTime  @default(now())
@@ -83,6 +84,7 @@ model Business {
   id          String       @id @default(cuid())
   ownerId     String
   name        String
+  storeCode   String?      @unique  // Kode toko untuk akses kasir publik
   type        BusinessType
   logo        String?
   phone       String?
@@ -129,6 +131,7 @@ model Outlet {
   name       String
   address    String?
   city       String?
+  province   String?
   phone      String?
   logo       String?
   isActive   Boolean  @default(true)

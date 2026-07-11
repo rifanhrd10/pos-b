@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { PinEntryClient } from "./pin-entry-client";
+import { ChevronLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export default async function KasirEnterPinPage({ searchParams }: Props) {
     where: { id: outletId, isActive: true },
     select: {
       name: true,
+      businessId: true,
       business: { select: { name: true } },
     },
   });
@@ -28,22 +30,22 @@ export default async function KasirEnterPinPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
-      <header className="border-b border-slate-800 px-6 py-5">
+      <header className="border-b border-slate-200 bg-white px-6 py-5 shadow-sm">
         <div className="max-w-sm mx-auto flex items-center gap-4">
           <a
-            href="/kasir/enter/outlets"
-            className="text-slate-400 hover:text-slate-200 transition-colors"
+            href={`/kasir/enter/outlets?businessId=${outlet.businessId}`}
+            className="text-slate-400 hover:text-slate-700 transition-colors p-1.5 hover:bg-slate-100 rounded-lg"
             aria-label="Kembali ke daftar outlet"
           >
-            <span className="material-symbols-outlined text-2xl">arrow_back</span>
+            <ChevronLeft className="w-5 h-5" />
           </a>
           <div>
-            <h1 className="text-lg font-bold text-slate-50 font-['Sora',sans-serif]">
+            <h1 className="text-lg font-bold text-slate-800">
               {outlet.name}
             </h1>
-            <p className="text-slate-400 text-xs">{outlet.business.name}</p>
+            <p className="text-slate-500 text-xs">{outlet.business.name}</p>
           </div>
         </div>
       </header>

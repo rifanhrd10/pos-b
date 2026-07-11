@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { StoreCodeEntry } from "./store-code-entry";
 
 export default function KasirEnterPage() {
-  redirect("/kasir/enter/outlets");
+  return <StoreCodeEntry />;
 }

@@ -194,7 +194,7 @@ export default function BusinessPage() {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <span className="material-symbols-outlined text-outline">receipt_long</span>
                 </div>
-                <input name="npwp" value={npwp} onChange={(e) => setNpwp(formatNPWP(e.target.value))} maxLength={20} className="block w-full pl-10 pr-3 py-3 border border-outline-variant/50 rounded-lg text-on-surface font-body-md text-body-md focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-surface-container-lowest placeholder:text-outline/50" placeholder="00.000.000.0-000.000" type="text" />
+                <input name="npwp" value={npwp} onChange={(e) => setNpwp(formatNPWP(e.target.value))} maxLength={20} className="block w-full pl-10 pr-3 py-3 border border-outline-variant/50 rounded-lg text-on-surface font-body-md text-body-md focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-surface-container-lowest placeholder:text-outline/50" placeholder="00.000.000.0-000.000" type="text" inputMode="numeric" />
               </div>
               <p className="font-body-md text-xs text-on-surface-variant mt-1">Format angka (opsional)</p>
             </div>
@@ -222,7 +222,7 @@ export default function BusinessPage() {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <span className="material-symbols-outlined text-outline">call</span>
                   </div>
-                  <input name="phone" required value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} className="block w-full pl-10 pr-3 py-3 border border-outline-variant/50 rounded-lg text-on-surface font-body-md text-body-md focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-surface-container-lowest placeholder:text-outline/50" placeholder="08xxxxxxxxxx" type="tel" />
+                  <input name="phone" required value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} className="block w-full pl-10 pr-3 py-3 border border-outline-variant/50 rounded-lg text-on-surface font-body-md text-body-md focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-surface-container-lowest placeholder:text-outline/50" placeholder="08xxxxxxxxxx" type="tel" inputMode="numeric" />
                 </div>
                 <p className="font-body-md text-xs text-on-surface-variant mt-1">Wajib angka (contoh: 08123456789)</p>
               </div>
@@ -238,7 +238,22 @@ export default function BusinessPage() {
               </div>
             </div>
             <div className="mt-8">
-              <RegionSelects />
+              <RegionSelects 
+                defaultValues={{
+                  province: business.province,
+                  city: business.city,
+                  district: business.district,
+                  village: business.subdistrict
+                }}
+                onChange={(data) => {
+                  setBusiness({
+                    province: data.province,
+                    city: data.city,
+                    district: data.district,
+                    subdistrict: data.village
+                  });
+                }}
+              />
             </div>
           </div>
 
