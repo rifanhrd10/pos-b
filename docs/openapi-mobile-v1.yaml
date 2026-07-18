@@ -1,0 +1,187 @@
+openapi: 3.1.0
+info:
+  title: Bayaro POS Mobile API
+  version: 1.0.0
+  description: Versioned API for the offline-first Bayaro Android POS client.
+servers:
+  - url: https://your-bayaro-host.example.com
+paths:
+  /api/v1/auth/login:
+    post:
+      summary: Create a device session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401': { $ref: '#/components/responses/ApiError' }
+        '403': { $ref: '#/components/responses/ApiError' }
+  /api/v1/auth/refresh:
+    post:
+      summary: Rotate a refresh token and issue a new access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken, deviceId]
+              properties:
+                refreshToken: { type: string }
+                deviceId: { type: string }
+      responses:
+        '200':
+          description: Tokens rotated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accessToken, refreshToken]
+                properties:
+                  accessToken: { type: string }
+                  refreshToken: { type: string }
+        '401': { $ref: '#/components/responses/ApiError' }
+  /api/v1/auth/logout:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Revoke the current device session
+      responses:
+        '200': { description: Session revoked }
+        '401': { $ref: '#/components/responses/ApiError' }
+  /api/v1/me:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Current cashier identity, permissions, and outlets
+      responses:
+        '200': { description: Current identity }
+        '401': { $ref: '#/components/responses/ApiError' }
+  /api/v1/subscription/status:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Current entitlement and signed offline license
+      responses:
+        '200':
+          description: Entitlement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entitlement'
+  /api/v1/sync/bootstrap:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Full initial catalog snapshot
+      responses:
+        '200':
+          description: Initial cursor, master data, and entitlement
+  /api/v1/sync/pull:
+    get:
+      security: [{ bearerAuth: [] }]
+      summary: Pull master-data changes after a server cursor
+      parameters:
+        - in: query
+          name: cursor
+          schema: { type: string, pattern: '^[0-9]+$' }
+      responses:
+        '200':
+          description: Incremental changes; repeat while hasMore is true
+        '422': { $ref: '#/components/responses/ApiError' }
+  /api/v1/sync/push:
+    post:
+      security: [{ bearerAuth: [] }]
+      summary: Push up to 100 idempotent offline cash-order mutations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mutations, licenseToken]
+              properties:
+                mutations:
+                  type: array
+                  maxItems: 100
+                  items: { $ref: '#/components/schemas/SyncMutation' }
+                licenseToken: { type: string }
+      responses:
+        '200':
+          description: Per-mutation acknowledgements and refreshed entitlement
+        '401': { $ref: '#/components/responses/ApiError' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    ApiError:
+      description: API error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                required: [code, message]
+                properties:
+                  code: { type: string }
+                  message: { type: string }
+                  details: {}
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password, deviceId, deviceName]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+        deviceId: { type: string, minLength: 8 }
+        deviceName: { type: string }
+    LoginResponse:
+      type: object
+      required: [accessToken, refreshToken, user, entitlement]
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        user:
+          type: object
+          required: [id, businessId, name, email, role, permissions]
+          properties:
+            id: { type: string }
+            businessId: { type: string }
+            name: { type: string }
+            email: { type: string, format: email }
+            role: { type: string }
+            permissions: { type: array, items: { type: string } }
+        entitlement: { $ref: '#/components/schemas/Entitlement' }
+    Entitlement:
+      type: object
+      required: [businessId, planName, status, features, offlineValidUntil, signedLicense, serverTime]
+      properties:
+        businessId: { type: string }
+        planName: { type: string }
+        status: { type: string, enum: [trial, active, grace, expired, cancelled, suspended] }
+        features: { type: array, items: { type: string } }
+        subscriptionEndsAt: { type: [integer, 'null'], format: int64 }
+        graceEndsAt: { type: [integer, 'null'], format: int64 }
+        offlineValidUntil: { type: integer, format: int64 }
+        signedLicense: { type: string }
+        serverTime: { type: integer, format: int64 }
+    SyncMutation:
+      type: object
+      required: [mutationId, entityType, entityId, operation, payload, deviceId, clientCreatedAt]
+      properties:
+        mutationId: { type: string }
+        entityType: { type: string, const: order }
+        entityId: { type: string }
+        operation: { type: string, const: CREATE }
+        payload: { type: object, additionalProperties: true }
+        deviceId: { type: string }
+        clientCreatedAt: { type: integer, format: int64 }

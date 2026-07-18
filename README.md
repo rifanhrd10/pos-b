@@ -152,6 +152,9 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/bayaro_pos"
 AUTH_SECRET="your-secret-key-min-32-chars"
 NEXTAUTH_URL="http://localhost:3000"
 
+# Android API (optional; falls back to AUTH_SECRET)
+MOBILE_AUTH_SECRET="another-random-secret-min-32-chars"
+
 # Midtrans (for QRIS Dynamic)
 MIDTRANS_SERVER_KEY="your-midtrans-server-key"
 MIDTRANS_CLIENT_KEY="your-midtrans-client-key"
@@ -178,6 +181,30 @@ After running `npm run db:seed`, the following accounts are available:
 | Kasir | kasir@bayaro.id | demo123 | 3333 |
 
 Demo business: **Bayaro Coffee Demo** — 2 outlets, Pro plan, products and tables pre-seeded.
+
+---
+
+## Android API v1
+
+The native Android client uses a separate Bearer-token API under `/api/v1`. Apply the
+latest Prisma migration before connecting a device:
+
+```bash
+npx prisma migrate deploy
+npm run dev
+```
+
+Implemented routes:
+
+- `POST /api/v1/auth/login`, `/auth/refresh`, and `/auth/logout`
+- `GET /api/v1/me` and `/subscription/status`
+- `GET /api/v1/sync/bootstrap` and `/sync/pull`
+- `POST /api/v1/sync/push` for idempotent offline cash orders
+
+The server derives the business, employee, permissions, and allowed outlets from the
+access token. Offline orders require a server-signed license that was valid when the
+transaction was created. QRIS remains online-only. See
+[`docs/openapi-mobile-v1.yaml`](docs/openapi-mobile-v1.yaml) for the wire contract.
 
 ---
 
