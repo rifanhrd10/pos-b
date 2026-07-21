@@ -14,7 +14,7 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
 
   // Public routes
-  const publicRoutes = ["/login", "/register", "/forgot-password"];
+  const publicRoutes = ["/login", "/forgot-password"];
   const isPublicRoute = publicRoutes.some((r) => pathname.startsWith(r));
 
   // Auth routes — redirect to dashboard if already logged in

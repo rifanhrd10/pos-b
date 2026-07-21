@@ -3,6 +3,7 @@ import { getCustomer } from "@/actions/customers";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Pencil, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatRp, formatDate, timeAgo } from "@/lib/format";
 
@@ -21,6 +22,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
     totalVisits: number;
     totalSpent: number;
     lastVisit: Date | null;
+    isActive: boolean;
     createdAt: Date;
     orders?: Array<{
       id: string;
@@ -55,12 +57,17 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           </div>
         </div>
         <div className="sm:ml-auto">
-          <Link href={`/customers/${id}/edit`}>
-            <Button>
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit Pelanggan
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Badge tone={customer.isActive ? "success" : "warning"}>
+              {customer.isActive ? "Aktif" : "Nonaktif"}
+            </Badge>
+            <Link href={`/customers/${id}/edit`}>
+              <Button>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit Pelanggan
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 

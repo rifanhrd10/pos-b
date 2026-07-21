@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [loadingDemo, setLoadingDemo] = useState<"admin" | "manager" | "kasir" | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const performLogin = async (loginEmail: string, loginPassword: string) => {
     setError("");
@@ -160,15 +161,20 @@ export default function LoginPage() {
                 <input 
                   id="password" 
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3.5 rounded-xl border border-outline-variant focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none bg-surface pr-12" 
                   placeholder="••••••••" 
                 />
-                <button className="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface" type="button">
-                  <span className="material-symbols-outlined text-[20px]">visibility_off</span>
+                <button
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  type="button"
+                  onClick={() => setShowPassword((value) => !value)}
+                  aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                >
+                  <span className="material-symbols-outlined text-[20px]">{showPassword ? "visibility" : "visibility_off"}</span>
                 </button>
               </div>
             </div>
@@ -178,12 +184,6 @@ export default function LoginPage() {
               {!loading && <span className="material-symbols-outlined text-lg">arrow_forward</span>}
             </button>
           </form>
-
-          <div className="text-center mt-6">
-            <p className="font-body-md text-body-md text-on-surface-variant">
-              Belum punya akun? <Link className="text-secondary font-semibold hover:underline" href="/register">Daftar Gratis Sekarang</Link>
-            </p>
-          </div>
 
           <div className="mt-6 rounded-2xl border border-outline-variant/60 bg-white/70 p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-3">

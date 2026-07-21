@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Grid2X2, Pencil, Plus, Trash2, Package } from "lucide-react";
+import { Pencil, Plus, Trash2, Package } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,6 @@ type Category = {
   id: string;
   name: string;
   description: string | null;
-  icon: string | null;
   _count: { products: number };
 };
 
@@ -58,14 +57,7 @@ export function CategoriesClient({ categories }: { categories: Category[] }) {
               key={category.id}
               className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-soft transition hover:shadow-md"
             >
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
-                  {category.icon ? (
-                    <span className="text-sm font-semibold uppercase">{category.icon.slice(0, 2)}</span>
-                  ) : (
-                    <Grid2X2 size={20} />
-                  )}
-                </div>
+              <div className="flex items-start">
                 <div className="min-w-0 flex-1">
                   <h3 className="truncate text-base font-semibold text-slate-900">{category.name}</h3>
                   <p className="mt-1 line-clamp-2 text-sm text-slate-500">

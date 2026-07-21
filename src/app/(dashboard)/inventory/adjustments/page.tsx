@@ -82,7 +82,9 @@ export default async function AdjustmentsPage() {
                 <th className="whitespace-nowrap px-4 py-3 font-semibold text-slate-600">Produk</th>
                 <th className="whitespace-nowrap px-4 py-3 font-semibold text-slate-600">Outlet</th>
                 <th className="whitespace-nowrap px-4 py-3 font-semibold text-slate-600">Tipe</th>
+                <th className="whitespace-nowrap px-4 py-3 font-semibold text-slate-600">Sebelum</th>
                 <th className="whitespace-nowrap px-4 py-3 font-semibold text-slate-600">Jumlah</th>
+                <th className="whitespace-nowrap px-4 py-3 font-semibold text-slate-600">Sesudah</th>
                 <th className="whitespace-nowrap px-4 py-3 font-semibold text-slate-600">Catatan</th>
                 <th className="whitespace-nowrap px-4 py-3 font-semibold text-slate-600">Referensi</th>
               </tr>
@@ -90,7 +92,7 @@ export default async function AdjustmentsPage() {
             <tbody className="divide-y divide-slate-100">
               {movements.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
+                  <td colSpan={9} className="px-4 py-12 text-center text-slate-400">
                     Belum ada riwayat penyesuaian stok
                   </td>
                 </tr>
@@ -114,12 +116,18 @@ export default async function AdjustmentsPage() {
                         {getTypeLabel(movement.type)}
                       </Badge>
                     </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                      {movement.stockBefore ?? "—"}
+                    </td>
                     <td className="whitespace-nowrap px-4 py-3 font-medium">
                       {movement.quantity > 0 ? (
                         <span className="text-emerald-600">+{movement.quantity}</span>
                       ) : (
                         <span className="text-red-500">{movement.quantity}</span>
                       )}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                      {movement.stockAfter ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-slate-600">
                       {movement.note ?? <span className="text-slate-300">—</span>}

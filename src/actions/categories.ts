@@ -15,8 +15,17 @@ export async function getCategories(businessId: string) {
 }
 
 export async function getCategory(id: string) {
-  return prisma.category.findUnique({
-    where: { id },
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  const business = await prisma.business.findFirst({
+    where: { ownerId: session.user.id },
+    select: { id: true },
+  });
+  if (!business) return null;
+
+  return prisma.category.findFirst({
+    where: { id, businessId: business.id },
   });
 }
 
@@ -32,7 +41,6 @@ export async function createCategory(formData: FormData) {
   const raw = {
     name: formData.get("name") as string,
     description: (formData.get("description") as string) || undefined,
-    icon: (formData.get("icon") as string) || undefined,
   };
 
   const result = categorySchema.safeParse(raw);
@@ -40,14 +48,19 @@ export async function createCategory(formData: FormData) {
     return { error: result.error.issues[0].message };
   }
 
-  const { name, description, icon } = result.data;
+  const { name, description } = result.data;
+
+  const duplicate = await prisma.category.findFirst({
+    where: { businessId: business.id, name: { equals: name, mode: "insensitive" } },
+    select: { id: true },
+  });
+  if (duplicate) return { error: "Nama kategori sudah digunakan" };
 
   await prisma.category.create({
     data: {
       businessId: business.id,
       name,
       description,
-      icon,
     },
   });
 
@@ -61,7 +74,6 @@ export async function updateCategory(id: string, formData: FormData) {
   const raw = {
     name: formData.get("name") as string,
     description: (formData.get("description") as string) || undefined,
-    icon: (formData.get("icon") as string) || undefined,
   };
 
   const result = categorySchema.safeParse(raw);
@@ -69,11 +81,33 @@ export async function updateCategory(id: string, formData: FormData) {
     return { error: result.error.issues[0].message };
   }
 
-  const { name, description, icon } = result.data;
+  const business = await prisma.business.findFirst({
+    where: { ownerId: session.user.id },
+    select: { id: true },
+  });
+  if (!business) return { error: "Business not found" };
+
+  const category = await prisma.category.findFirst({
+    where: { id, businessId: business.id },
+    select: { id: true },
+  });
+  if (!category) return { error: "Category not found" };
+
+  const { name, description } = result.data;
+
+  const duplicate = await prisma.category.findFirst({
+    where: {
+      businessId: business.id,
+      id: { not: id },
+      name: { equals: name, mode: "insensitive" },
+    },
+    select: { id: true },
+  });
+  if (duplicate) return { error: "Nama kategori sudah digunakan" };
 
   await prisma.category.update({
     where: { id },
-    data: { name, description, icon },
+    data: { name, description },
   });
 
   return { success: true };
@@ -94,7 +128,7 @@ export async function deleteCategory(id: string) {
   if (!category) return { error: "Category not found" };
 
   await prisma.product.updateMany({
-    where: { categoryId: id },
+    where: { businessId: business.id, categoryId: id },
     data: { categoryId: null },
   });
 

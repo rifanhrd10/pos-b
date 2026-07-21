@@ -21,19 +21,17 @@ export default async function InventoryPage() {
 
   const stocks = result;
 
-  // Flatten products × stocks into rows
   const rows: StockRow[] = [];
   for (const product of stocks) {
     if (product.stocks.length === 0) {
-      // Product exists but has no stock record yet
       rows.push({
         productId: product.productId,
         productName: product.productName,
         sku: product.sku,
         categoryName: product.categoryName,
         stockId: "",
-        outletId: "",
-        outletName: "—",
+        outletId: activeOutletId ?? ctx.outletId ?? "",
+        outletName: activeOutletId ? "Outlet aktif" : "—",
         quantity: 0,
         minStock: 0,
       });
@@ -58,8 +56,8 @@ export default async function InventoryPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Inventori</h1>
-          <p className="text-sm text-slate-500">Kelola stok produk per outlet</p>
+          <h1 className="text-2xl font-bold text-slate-900">Stok</h1>
+          <p className="text-sm text-slate-500">Kelola stock awal, stock masuk, stock keluar, dan penyesuaian.</p>
         </div>
       </div>
 

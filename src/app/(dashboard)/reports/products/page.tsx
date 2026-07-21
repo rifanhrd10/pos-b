@@ -9,7 +9,7 @@ import { ProductsBarChart } from "@/components/charts/products-bar-chart";
 import { formatRp, formatDateYYYYMMDD } from "@/lib/format";
 
 interface PageProps {
-  searchParams: Promise<{ start?: string; end?: string; categoryId?: string }>;
+  searchParams: Promise<{ start?: string; end?: string; start_date?: string; end_date?: string; categoryId?: string }>;
 }
 
 export default async function ProductsReportPage({ searchParams }: PageProps) {
@@ -26,8 +26,8 @@ export default async function ProductsReportPage({ searchParams }: PageProps) {
     new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
   );
 
-  const startStr = params.start ?? defaultStart;
-  const endStr = params.end ?? defaultEnd;
+  const startStr = params.start_date ?? params.start ?? defaultStart;
+  const endStr = params.end_date ?? params.end ?? defaultEnd;
   const categoryId = params.categoryId;
 
   const startDate = new Date(startStr);
@@ -76,8 +76,8 @@ export default async function ProductsReportPage({ searchParams }: PageProps) {
         <DateRangePicker startDate={startStr} endDate={endStr} />
 
         <form method="GET">
-          <input type="hidden" name="start" value={startStr} />
-          <input type="hidden" name="end" value={endStr} />
+          <input type="hidden" name="start_date" value={startStr} />
+          <input type="hidden" name="end_date" value={endStr} />
           <select
             name="categoryId"
             defaultValue={categoryId ?? ""}

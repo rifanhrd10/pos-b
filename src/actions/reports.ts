@@ -346,13 +346,15 @@ export async function getSalesReport(
   businessId: string,
   startDate: Date,
   endDate: Date,
-  outletId?: string
+  outletId?: string,
+  method?: string
 ) {
   const where = {
     businessId,
     status: "PAID" as const,
     createdAt: { gte: startDate, lte: endDate },
     ...(outletId ? { outletId } : {}),
+    ...(method ? { payment: { method } } : {}),
   }
 
   const orders = await prisma.order.findMany({
@@ -365,7 +367,7 @@ export async function getSalesReport(
   })
 
   // Daily bucketing
-  const dailyMap = new Map<string, { revenue: number; transactions: number }>()
+  const dailyMap = new Map<string, { revenue: number; transactions: number; qrisRevenue: number; qrisTransactions: number; cashRevenue: number; cashTransactions: number }>()
   // Fill all dates in range with 0
   const cursor = new Date(startDate)
   cursor.setHours(0, 0, 0, 0)
@@ -373,16 +375,35 @@ export async function getSalesReport(
   rangeEnd.setHours(0, 0, 0, 0)
   while (cursor <= rangeEnd) {
     const key = cursor.toISOString().slice(0, 10)
-    dailyMap.set(key, { revenue: 0, transactions: 0 })
+    dailyMap.set(key, { revenue: 0, transactions: 0, qrisRevenue: 0, qrisTransactions: 0, cashRevenue: 0, cashTransactions: 0 })
     cursor.setDate(cursor.getDate() + 1)
   }
 
   let total = 0
+  let qrisTotal = 0
+  let cashTotal = 0
+  let qrisCount = 0
+  let cashCount = 0
   for (const o of orders) {
     const key = o.createdAt.toISOString().slice(0, 10)
-    const bucket = dailyMap.get(key) ?? { revenue: 0, transactions: 0 }
+    const bucket = dailyMap.get(key) ?? { revenue: 0, transactions: 0, qrisRevenue: 0, qrisTransactions: 0, cashRevenue: 0, cashTransactions: 0 }
+    const paymentMethod = (o.payment?.method ?? "").toUpperCase()
+    const isQris = paymentMethod.includes("QRIS")
+    const isCash = paymentMethod === "CASH" || paymentMethod.includes("TUNAI")
     bucket.revenue += o.totalAmount
     bucket.transactions += 1
+    if (isQris) {
+      bucket.qrisRevenue += o.totalAmount
+      bucket.qrisTransactions += 1
+      qrisTotal += o.totalAmount
+      qrisCount += 1
+    }
+    if (isCash) {
+      bucket.cashRevenue += o.totalAmount
+      bucket.cashTransactions += 1
+      cashTotal += o.totalAmount
+      cashCount += 1
+    }
     dailyMap.set(key, bucket)
     total += o.totalAmount
   }
@@ -405,15 +426,96 @@ export async function getSalesReport(
   return {
     dailyData: Array.from(dailyMap.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, { revenue, transactions }]) => ({ date, revenue, transactions })),
+      .map(([date, value]) => ({ date, ...value })),
     summary: {
       total,
       count,
+      qrisTotal,
+      qrisCount,
+      cashTotal,
+      cashCount,
       avg: count === 0 ? 0 : total / count,
     },
     byPaymentMethod: Array.from(methodMap.entries()).map(
       ([method, { amount, count: c }]) => ({ method, amount, count: c })
     ),
+  }
+}
+
+export async function getSalesTransactionsReport(
+  businessId: string,
+  startDate: Date,
+  endDate: Date,
+  options: { outletId?: string; method?: string; cashierId?: string; search?: string; page?: number; pageSize?: number } = {}
+) {
+  const page = Math.max(1, options.page ?? 1)
+  const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 25))
+  const where = {
+    businessId,
+    status: "PAID" as const,
+    createdAt: { gte: startDate, lte: endDate },
+    ...(options.outletId ? { outletId: options.outletId } : {}),
+    ...(options.cashierId ? { employeeId: options.cashierId } : {}),
+    ...(options.search
+      ? {
+          OR: [
+            { orderNumber: { contains: options.search, mode: "insensitive" as const } },
+            { customerName: { contains: options.search, mode: "insensitive" as const } },
+            { customer: { name: { contains: options.search, mode: "insensitive" as const } } },
+          ],
+        }
+      : {}),
+    ...(options.method ? { payment: { method: options.method } } : {}),
+  }
+
+  const [orders, total] = await Promise.all([
+    prisma.order.findMany({
+      where,
+      include: {
+        employee: { select: { id: true, name: true } },
+        customer: { select: { name: true } },
+        payment: { select: { method: true, status: true } },
+        items: {
+          select: {
+            id: true,
+            name: true,
+            variantName: true,
+            quantity: true,
+            price: true,
+            subtotal: true,
+            notes: true,
+          },
+          orderBy: { id: "asc" },
+        },
+      },
+      orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.order.count({ where }),
+  ])
+
+  return {
+    orders: orders.map((order) => ({
+      id: order.id,
+      orderNumber: order.orderNumber,
+      createdAt: order.createdAt,
+      paidAt: order.paidAt,
+      cashierName: order.employee.name,
+      customerName: order.customer?.name ?? order.customerName ?? "Umum",
+      subtotal: order.subtotal,
+      discountAmount: order.discountAmount,
+      taxAmount: order.taxAmount,
+      serviceAmount: order.serviceAmount,
+      totalAmount: order.totalAmount,
+      method: order.payment?.method ?? "—",
+      paymentStatus: order.payment?.status ?? "PAID",
+      items: order.items,
+      itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
+    })),
+    total,
+    page,
+    pageSize,
   }
 }
 
@@ -546,14 +648,17 @@ export async function getInventoryReport(
     where: {
       product: {
         businessId,
+        trackStock: true,
         ...(categoryId ? { categoryId } : {}),
       },
       ...(outletId ? { outletId } : {}),
     },
     select: {
+      id: true,
       quantity: true,
       product: {
         select: {
+          id: true,
           name: true,
           category: { select: { name: true } },
         },
@@ -564,9 +669,94 @@ export async function getInventoryReport(
   })
 
   return stocks.map((s) => ({
+    stockId: s.id,
+    productId: s.product.id,
     name: s.product.name,
     category: s.product.category?.name ?? "—",
     outlet: s.outlet.name,
     currentStock: s.quantity,
   }))
+}
+
+export async function getStockMovementReport(
+  businessId: string,
+  options: {
+    startDate?: Date
+    endDate?: Date
+    outletId?: string
+    categoryId?: string
+    productId?: string
+    type?: "IN" | "OUT" | "ADJUSTMENT" | "TRANSFER" | "OPNAME"
+    search?: string
+    page?: number
+    pageSize?: number
+  } = {}
+) {
+  const page = Math.max(1, options.page ?? 1)
+  const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 25))
+  const search = options.search?.trim()
+  const where = {
+    ...(options.startDate || options.endDate
+      ? { createdAt: { ...(options.startDate ? { gte: options.startDate } : {}), ...(options.endDate ? { lte: options.endDate } : {}) } }
+      : {}),
+    ...(options.type ? { type: options.type } : {}),
+    ...(search
+      ? {
+          OR: [
+            { reference: { contains: search, mode: "insensitive" as const } },
+            { note: { contains: search, mode: "insensitive" as const } },
+            { stock: { product: { name: { contains: search, mode: "insensitive" as const } } } },
+          ],
+        }
+      : {}),
+    stock: {
+      product: {
+        businessId,
+        trackStock: true,
+        ...(options.categoryId ? { categoryId: options.categoryId } : {}),
+        ...(options.productId ? { id: options.productId } : {}),
+      },
+      ...(options.outletId ? { outletId: options.outletId } : {}),
+    },
+  }
+
+  const [movements, total] = await Promise.all([
+    prisma.stockMovement.findMany({
+      where,
+      include: {
+        stock: {
+          include: {
+            product: { select: { id: true, name: true, sku: true, category: { select: { name: true } } } },
+            outlet: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.stockMovement.count({ where }),
+  ])
+
+  return {
+    movements: movements.map((movement) => ({
+      id: movement.id,
+      createdAt: movement.createdAt,
+      type: movement.type,
+      stockBefore: movement.stockBefore,
+      quantity: movement.quantity,
+      stockAfter: movement.stockAfter,
+      reference: movement.reference,
+      note: movement.note,
+      createdBy: movement.createdBy,
+      productId: movement.stock.product.id,
+      productName: movement.stock.product.name,
+      productSku: movement.stock.product.sku,
+      categoryName: movement.stock.product.category?.name ?? "—",
+      outletName: movement.stock.outlet.name,
+    })),
+    total,
+    page,
+    pageSize,
+  }
 }

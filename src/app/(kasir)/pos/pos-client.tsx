@@ -232,7 +232,12 @@ export function PosClient({
 
   // ─── Add Product ───
   const handleAddProduct = useCallback(
-    (product: PosProduct, variantId?: string, toppingIds?: string[]) => {
+    (
+      product: PosProduct,
+      variantId?: string,
+      toppingIds?: string[],
+      variantSelections?: Array<{ groupId: string; optionId: string }>
+    ) => {
       if (!currentOrderId) {
         alert("Pilih meja terlebih dahulu");
         return;
@@ -241,6 +246,7 @@ export function PosClient({
         const result = await addOrderItem(currentOrderId, {
           productId: product.id,
           variantId,
+          variantSelections,
           toppingIds,
           quantity: 1,
         });

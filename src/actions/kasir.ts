@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
+import type { Prisma } from "@prisma/client";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -15,6 +16,12 @@ export type PosProduct = {
   categoryName: string | null;
   hasVariants: boolean;
   hasTopping: boolean;
+  variantGroups: {
+    id: string;
+    name: string;
+    isRequired: boolean;
+    options: { id: string; name: string; priceAdjustment: number }[];
+  }[];
   variants: { id: string; name: string; priceAdjustment: number }[];
   toppings: { id: string; name: string; price: number }[];
 };
@@ -59,6 +66,59 @@ async function recalculateOrderTotals(orderId: string): Promise<void> {
     where: { id: orderId },
     data: { subtotal, taxAmount, serviceAmount, totalAmount },
   });
+}
+
+async function decrementTrackedStockForOrder(
+  tx: Prisma.TransactionClient,
+  orderId: string,
+  orderNumber: string,
+  outletId: string,
+  employeeId: string
+) {
+  const reference = `SALE:${orderNumber}`;
+  const alreadyLogged = await tx.stockMovement.findFirst({
+    where: { reference, stock: { outletId } },
+    select: { id: true },
+  });
+  if (alreadyLogged) return;
+
+  const items = await tx.orderItem.findMany({
+    where: { orderId, product: { trackStock: true } },
+    include: { product: { select: { name: true, trackStock: true } } },
+  });
+
+  for (const item of items) {
+    const stock = await tx.stock.findFirst({
+      where: {
+        outletId,
+        productId: item.productId,
+        variantId: item.variantId ?? null,
+      },
+    });
+    const currentQty = stock?.quantity ?? 0;
+    const nextQty = currentQty - item.quantity;
+    if (!stock || nextQty < 0) {
+      throw new Error(`Stok ${item.product.name} tidak cukup untuk transaksi ini`);
+    }
+
+    const updated = await tx.stock.update({
+      where: { id: stock.id },
+      data: { quantity: nextQty },
+    });
+
+    await tx.stockMovement.create({
+      data: {
+        stockId: updated.id,
+        type: "OUT",
+        quantity: -item.quantity,
+        stockBefore: currentQty,
+        stockAfter: nextQty,
+        reference,
+        note: "Pengurangan karena penjualan",
+        createdBy: employeeId,
+      },
+    });
+  }
 }
 
 // ─── Employee & PIN ────────────────────────────────────────────
@@ -354,6 +414,7 @@ export async function addOrderItem(
   item: {
     productId: string;
     variantId?: string;
+    variantSelections?: Array<{ groupId: string; optionId: string }>;
     toppingIds?: string[];
     quantity: number;
     notes?: string;
@@ -361,14 +422,63 @@ export async function addOrderItem(
 ): Promise<{ ok: boolean; error?: string }> {
   const product = await prisma.product.findUnique({
     where: { id: item.productId },
-    select: { id: true, name: true, basePrice: true },
+    select: {
+      id: true,
+      name: true,
+      basePrice: true,
+      variantGroups: {
+        include: {
+          masterVariant: {
+            include: { options: { where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] } },
+          },
+        },
+        orderBy: { sortOrder: "asc" },
+      },
+    },
   });
   if (!product) return { ok: false, error: "Produk tidak ditemukan" };
 
   let variantName: string | undefined;
   let priceAdjustment = 0;
+  let selectedVariantSnapshots: Array<{
+    masterVariantId: string;
+    masterVariantOptionId: string;
+    groupName: string;
+    optionName: string;
+    priceAdjustment: number;
+  }> = [];
 
-  if (item.variantId) {
+  if (product.variantGroups.length > 0) {
+    const selections = item.variantSelections ?? [];
+    const selectionMap = new Map(selections.map((selection) => [selection.groupId, selection.optionId]));
+    const missingGroup = product.variantGroups.find((group) => group.isRequired && !selectionMap.get(group.masterVariantId));
+    if (missingGroup) return { ok: false, error: `Pilih varian ${missingGroup.masterVariant.name} terlebih dahulu` };
+
+    selectedVariantSnapshots = product.variantGroups
+      .map((group) => {
+        const optionId = selectionMap.get(group.masterVariantId);
+        if (!optionId) return null;
+        const option = group.masterVariant.options.find((itemOption) => itemOption.id === optionId);
+        if (!option) return null;
+        return {
+          masterVariantId: group.masterVariant.id,
+          masterVariantOptionId: option.id,
+          groupName: group.masterVariant.name,
+          optionName: option.name,
+          priceAdjustment: option.priceAdjustment,
+        };
+      })
+      .filter((snapshot): snapshot is NonNullable<typeof snapshot> => Boolean(snapshot));
+
+    if (selectedVariantSnapshots.length !== selections.length) {
+      return { ok: false, error: "Pilihan varian tidak valid untuk produk ini" };
+    }
+
+    priceAdjustment = selectedVariantSnapshots.reduce((sum, snapshot) => sum + snapshot.priceAdjustment, 0);
+    variantName = selectedVariantSnapshots.map((snapshot) => `${snapshot.groupName}: ${snapshot.optionName}`).join(", ");
+  }
+
+  if (item.variantId && selectedVariantSnapshots.length === 0) {
     const variant = await prisma.productVariant.findUnique({
       where: { id: item.variantId },
       select: { id: true, name: true, priceAdjustment: true },
@@ -378,9 +488,6 @@ export async function addOrderItem(
     priceAdjustment = variant.priceAdjustment;
   }
 
-  const price = product.basePrice + priceAdjustment;
-  const subtotal = price * item.quantity;
-
   let toppings: { id: string; name: string; price: number }[] = [];
   if (item.toppingIds && item.toppingIds.length > 0) {
     const fetchedToppings = await prisma.productTopping.findMany({
@@ -389,6 +496,10 @@ export async function addOrderItem(
     });
     toppings = fetchedToppings;
   }
+
+  const toppingTotal = toppings.reduce((sum, topping) => sum + topping.price, 0);
+  const price = product.basePrice + priceAdjustment + toppingTotal;
+  const subtotal = price * item.quantity;
 
   await prisma.orderItem.create({
     data: {
@@ -401,6 +512,15 @@ export async function addOrderItem(
       quantity: item.quantity,
       subtotal,
       notes: item.notes,
+      variants: {
+        create: selectedVariantSnapshots.map((snapshot) => ({
+          masterVariantId: snapshot.masterVariantId,
+          masterVariantOptionId: snapshot.masterVariantOptionId,
+          groupName: snapshot.groupName,
+          optionName: snapshot.optionName,
+          priceAdjustment: snapshot.priceAdjustment,
+        })),
+      },
       toppings: {
         create: toppings.map((t) => ({
           toppingId: t.id,
@@ -512,24 +632,29 @@ export async function processPayment(data: {
 
       const changeAmount = data.cashEntered - order.totalAmount;
 
-      const payment = await prisma.payment.create({
-        data: {
-          orderId: data.orderId,
-          businessId: order.businessId,
-          outletId: order.outletId,
-          employeeId: data.employeeId,
-          method: data.method,
-          totalAmount: order.totalAmount,
-          cashEntered: data.cashEntered,
-          changeAmount,
-          referenceNo: data.referenceNo,
-          status: "PAID",
-        },
-      });
+      const payment = await prisma.$transaction(async (tx) => {
+        const createdPayment = await tx.payment.create({
+          data: {
+            orderId: data.orderId,
+            businessId: order.businessId,
+            outletId: order.outletId,
+            employeeId: data.employeeId,
+            method: data.method,
+            totalAmount: order.totalAmount,
+            cashEntered: data.cashEntered,
+            changeAmount,
+            referenceNo: data.referenceNo,
+            status: "PAID",
+          },
+        });
 
-      await prisma.order.update({
-        where: { id: data.orderId },
-        data: { status: "PAID", paidAt: new Date() },
+        await tx.order.update({
+          where: { id: data.orderId },
+          data: { status: "PAID", paidAt: new Date() },
+        });
+
+        await decrementTrackedStockForOrder(tx, data.orderId, order.orderNumber, order.outletId, data.employeeId);
+        return createdPayment;
       });
 
       // Update customer stats if order has a customer
@@ -677,14 +802,19 @@ export async function confirmQrisPayment(
     if (!payment) return { ok: false, error: "Payment tidak ditemukan" };
     if (payment.status === "PAID") return { ok: false, error: "Payment sudah dibayar" };
 
-    await prisma.payment.update({
-      where: { id: paymentId },
-      data: { status: "PAID" },
-    });
+    await prisma.$transaction(async (tx) => {
+      await tx.payment.update({
+        where: { id: paymentId },
+        data: { status: "PAID" },
+      });
 
-    await prisma.order.update({
-      where: { id: payment.orderId },
-      data: { status: "PAID", paidAt: new Date() },
+      const paidOrderInTx = await tx.order.update({
+        where: { id: payment.orderId },
+        data: { status: "PAID", paidAt: new Date() },
+        select: { id: true, orderNumber: true, outletId: true },
+      });
+
+      await decrementTrackedStockForOrder(tx, paidOrderInTx.id, paidOrderInTx.orderNumber, paidOrderInTx.outletId, employeeId);
     });
 
     // Update customer stats if order has a customer
@@ -746,6 +876,20 @@ export async function getPosProducts(
         select: { id: true, name: true, priceAdjustment: true },
         orderBy: { sortOrder: "asc" },
       },
+      variantGroups: {
+        where: { masterVariant: { isActive: true } },
+        include: {
+          masterVariant: {
+            include: {
+              options: {
+                where: { isActive: true },
+                orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+              },
+            },
+          },
+        },
+        orderBy: { sortOrder: "asc" },
+      },
       toppings: {
         where: { isActive: true },
         select: { id: true, name: true, price: true },
@@ -761,8 +905,18 @@ export async function getPosProducts(
     basePrice: p.basePrice,
     categoryId: p.categoryId ?? null,
     categoryName: p.category?.name ?? null,
-    hasVariants: p.variants.length > 0,
+    hasVariants: p.variantGroups.length > 0 || p.variants.length > 0,
     hasTopping: p.toppings.length > 0,
+    variantGroups: p.variantGroups.map((group) => ({
+      id: group.masterVariant.id,
+      name: group.masterVariant.name,
+      isRequired: group.isRequired,
+      options: group.masterVariant.options.map((option) => ({
+        id: option.id,
+        name: option.name,
+        priceAdjustment: option.priceAdjustment,
+      })),
+    })),
     variants: p.variants,
     toppings: p.toppings,
   }));

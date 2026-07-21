@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createCustomer, updateCustomer } from "@/actions/customers";
@@ -17,6 +18,7 @@ interface CustomerFormProps {
     email?: string | null;
     address?: string | null;
     notes?: string | null;
+    isActive?: boolean;
   };
   onSuccess?: () => void;
 }
@@ -31,13 +33,14 @@ export function CustomerForm({ businessId, initialData, onSuccess }: CustomerFor
   const [email, setEmail] = useState(initialData?.email || "");
   const [address, setAddress] = useState(initialData?.address || "");
   const [notes, setNotes] = useState(initialData?.notes || "");
+  const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsPending(true);
     setError("");
 
-    const data = { name, phone: phone || null, email: email || null, address: address || null, notes: notes || null };
+    const data = { name, phone: phone || null, email: email || null, address: address || null, notes: notes || null, isActive };
 
     try {
       if (initialData?.id) {
@@ -118,6 +121,10 @@ export function CustomerForm({ businessId, initialData, onSuccess }: CustomerFor
               placeholder="Catatan tambahan tentang pelanggan..."
               rows={3}
             />
+          </div>
+          <div className="sm:col-span-2">
+            <Checkbox checked={isActive} onChange={setIsActive} label="Pelanggan aktif" />
+            <p className="mt-1 text-xs text-slate-500">Nonaktifkan jika pelanggan tidak digunakan lagi, tanpa menghapus riwayat transaksinya.</p>
           </div>
         </div>
       </div>

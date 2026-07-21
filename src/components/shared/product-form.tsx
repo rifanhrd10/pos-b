@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createProduct, updateProduct } from "@/actions/products";
@@ -19,10 +20,41 @@ type ProductItemVariant = {
   stock?: number;
 };
 
+type ProductVariantGroupItem = {
+  id?: string;
+  masterVariantId: string;
+  masterVariant?: {
+    id: string;
+    name: string;
+    isActive: boolean;
+  } | null;
+};
+
 type ProductItemTopping = {
   id?: string;
+  masterToppingId?: string | null;
   name: string;
   price: number;
+};
+
+type MasterVariantOption = {
+  id: string;
+  name: string;
+  isActive: boolean;
+  options: Array<{
+    id: string;
+    name: string;
+    priceAdjustment: number;
+    isActive: boolean;
+    sortOrder: number;
+  }>;
+};
+
+type MasterToppingOption = {
+  id: string;
+  name: string;
+  price: number;
+  isActive: boolean;
 };
 
 type ProductFormProps = {
@@ -40,9 +72,12 @@ type ProductFormProps = {
     taxRate: number;
     image?: string | null;
     trackStock: boolean;
+    variantGroups?: ProductVariantGroupItem[];
     variants?: ProductItemVariant[];
     toppings?: ProductItemTopping[];
   };
+  masterVariants?: MasterVariantOption[];
+  masterToppings?: MasterToppingOption[];
 };
 
 type CategoryOption = {
@@ -50,10 +85,7 @@ type CategoryOption = {
   name: string;
 };
 
-const emptyVariant = (): ProductItemVariant => ({ name: "", priceAdjustment: 0, stock: 0 });
-const emptyTopping = (): ProductItemTopping => ({ name: "", price: 0 });
-
-export function ProductForm({ mode, businessId, product }: ProductFormProps) {
+export function ProductForm({ mode, businessId, product, masterVariants = [], masterToppings = [] }: ProductFormProps) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
@@ -62,8 +94,12 @@ export function ProductForm({ mode, businessId, product }: ProductFormProps) {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [categoryId, setCategoryId] = useState(product?.categoryId ?? "");
   const [trackStock, setTrackStock] = useState(product?.trackStock ?? false);
-  const [variants, setVariants] = useState<ProductItemVariant[]>(product?.variants?.length ? product.variants : [emptyVariant()]);
-  const [toppings, setToppings] = useState<ProductItemTopping[]>(product?.toppings?.length ? product.toppings : [emptyTopping()]);
+  const [selectedVariantGroupIds, setSelectedVariantGroupIds] = useState<string[]>(
+    () => product?.variantGroups?.map((variantGroup) => variantGroup.masterVariantId).filter((id): id is string => Boolean(id)) ?? []
+  );
+  const [selectedToppingIds, setSelectedToppingIds] = useState<string[]>(
+    () => product?.toppings?.map((topping) => topping.masterToppingId).filter((id): id is string => Boolean(id)) ?? []
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -93,39 +129,15 @@ export function ProductForm({ mode, businessId, product }: ProductFormProps) {
     };
   }, [businessId]);
 
-  const filteredVariants = useMemo(
-    () => variants.filter((variant) => variant.name.trim() || variant.priceAdjustment > 0 || (variant.stock ?? 0) > 0),
-    [variants]
-  );
-  const filteredToppings = useMemo(
-    () => toppings.filter((topping) => topping.name.trim() || topping.price > 0),
-    [toppings]
-  );
+  const legacyVariants = useMemo(() => product?.variants ?? [], [product?.variants]);
+  const legacyToppings = useMemo(() => product?.toppings?.filter((topping) => !topping.masterToppingId) ?? [], [product?.toppings]);
 
-  function updateVariant(index: number, key: keyof ProductItemVariant, value: string | number) {
-    setVariants((current) =>
-      current.map((variant, currentIndex) =>
-        currentIndex === index
-          ? {
-              ...variant,
-              [key]: typeof value === "string" && key === "name" ? value : Number(value),
-            }
-          : variant
-      )
-    );
+  function toggleVariantGroup(id: string) {
+    setSelectedVariantGroupIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   }
 
-  function updateTopping(index: number, key: keyof ProductItemTopping, value: string | number) {
-    setToppings((current) =>
-      current.map((topping, currentIndex) =>
-        currentIndex === index
-          ? {
-              ...topping,
-              [key]: key === "name" ? value : Number(value),
-            }
-          : topping
-      )
-    );
+  function toggleTopping(id: string) {
+    setSelectedToppingIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -137,8 +149,8 @@ export function ProductForm({ mode, businessId, product }: ProductFormProps) {
       const formData = new FormData(event.currentTarget);
       formData.set("categoryId", categoryId);
       formData.set("trackStock", String(trackStock));
-      formData.set("variants", JSON.stringify(filteredVariants));
-      formData.set("toppings", JSON.stringify(filteredToppings));
+      formData.set("variantGroupIds", JSON.stringify(selectedVariantGroupIds));
+      formData.set("toppingIds", JSON.stringify(selectedToppingIds));
 
       const result =
         mode === "create"
@@ -204,12 +216,12 @@ export function ProductForm({ mode, businessId, product }: ProductFormProps) {
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Harga Jual <span className="text-red-500">*</span></label>
-              <Input name="basePrice" type="number" min="0" step="0.01" required defaultValue={product?.basePrice ?? 0} />
+              <CurrencyInput name="basePrice" required defaultValue={product?.basePrice ?? 0} />
             </div>
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Harga Modal</label>
-              <Input name="costPrice" type="number" min="0" step="0.01" defaultValue={product?.costPrice ?? ""} />
+              <CurrencyInput name="costPrice" defaultValue={product?.costPrice ?? ""} />
             </div>
 
             <div>
@@ -258,88 +270,73 @@ export function ProductForm({ mode, businessId, product }: ProductFormProps) {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-base font-semibold text-slate-900">Varian</h3>
-                <p className="text-sm text-slate-500">Atur opsi varian dan penyesuaian harga.</p>
+                <p className="text-sm text-slate-500">Pilih grup varian dari Master Data Varian. Detail pilihan mengikuti master.</p>
               </div>
-              <Button type="button" variant="outline" onClick={() => setVariants((current) => [...current, emptyVariant()])}>
-                Tambah Varian
-              </Button>
             </div>
 
-            <div className="space-y-3">
-              {variants.map((variant, index) => (
-                <div key={`${variant.id ?? "variant"}-${index}`} className="grid gap-3 rounded-2xl border border-slate-100 p-4 md:grid-cols-4">
-                  <Input
-                    placeholder="Nama varian"
-                    value={variant.name}
-                    onChange={(event) => updateVariant(index, "name", event.target.value)}
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Harga tambahan"
-                    value={variant.priceAdjustment}
-                    onChange={(event) => updateVariant(index, "priceAdjustment", event.target.value)}
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    step="1"
-                    placeholder="Stok"
-                    value={variant.stock ?? 0}
-                    onChange={(event) => updateVariant(index, "stock", event.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="flex h-10 w-10 items-center justify-center rounded-xl text-rose-500 transition-colors hover:bg-rose-50 hover:text-rose-700"
-                    onClick={() => setVariants((current) => current.filter((_, currentIndex) => currentIndex !== index))}
-                    title="Hapus"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
-            </div>
+            {masterVariants.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                Belum ada grup master varian aktif. Tambahkan dulu di menu Master Varian.
+              </div>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2">
+                {masterVariants.map((variant) => (
+                  <div key={variant.id} className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition ${selectedVariantGroupIds.includes(variant.id) ? "border-indigo-300 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"}`}>
+                    <Checkbox checked={selectedVariantGroupIds.includes(variant.id)} onChange={() => toggleVariantGroup(variant.id)} label="" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-semibold text-slate-900">{variant.name}</span>
+                      <span className="mt-2 flex flex-wrap gap-1.5">
+                        {variant.options.map((option) => (
+                          <span key={option.id} className="rounded-full border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600">
+                            {option.name}
+                            {option.priceAdjustment > 0
+                              ? ` +${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(option.priceAdjustment)}`
+                              : ""}
+                          </span>
+                        ))}
+                      </span>
+                    </span>
+                    {!variant.isActive ? <Badge tone="warning">Nonaktif</Badge> : null}
+                  </div>
+                ))}
+              </div>
+            )}
+            {legacyVariants.length > 0 ? (
+              <p className="text-xs text-amber-600">Ada {legacyVariants.length} varian lama berbasis product. Pilih grup master dan simpan ulang produk agar POS memakai struktur baru.</p>
+            ) : null}
           </div>
 
           <div className="space-y-4 rounded-3xl border border-slate-200 p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-base font-semibold text-slate-900">Topping</h3>
-                <p className="text-sm text-slate-500">Tambahkan topping atau add-on produk.</p>
+                <p className="text-sm text-slate-500">Pilih topping dari Master Data Topping.</p>
               </div>
-              <Button type="button" variant="outline" onClick={() => setToppings((current) => [...current, emptyTopping()])}>
-                Tambah Topping
-              </Button>
             </div>
 
-            <div className="space-y-3">
-              {toppings.map((topping, index) => (
-                <div key={`${topping.id ?? "topping"}-${index}`} className="grid gap-3 rounded-2xl border border-slate-100 p-4 md:grid-cols-3">
-                  <Input
-                    placeholder="Nama topping"
-                    value={topping.name}
-                    onChange={(event) => updateTopping(index, "name", event.target.value)}
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Harga"
-                    value={topping.price}
-                    onChange={(event) => updateTopping(index, "price", event.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="flex h-10 w-10 items-center justify-center rounded-xl text-rose-500 transition-colors hover:bg-rose-50 hover:text-rose-700"
-                    onClick={() => setToppings((current) => current.filter((_, currentIndex) => currentIndex !== index))}
-                    title="Hapus"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
-            </div>
+            {masterToppings.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                Belum ada master topping aktif. Tambahkan dulu di menu Master Topping.
+              </div>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2">
+                {masterToppings.map((topping) => (
+                  <label key={topping.id} className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition ${selectedToppingIds.includes(topping.id) ? "border-indigo-300 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"}`}>
+                    <Checkbox checked={selectedToppingIds.includes(topping.id)} onChange={() => toggleTopping(topping.id)} label="" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-semibold text-slate-900">{topping.name}</span>
+                      <span className="mt-1 block text-sm text-slate-500">
+                        Harga tambahan {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(topping.price)}
+                      </span>
+                    </span>
+                    {!topping.isActive ? <Badge tone="warning">Nonaktif</Badge> : null}
+                  </label>
+                ))}
+              </div>
+            )}
+            {legacyToppings.length > 0 ? (
+              <p className="text-xs text-amber-600">Ada {legacyToppings.length} topping lama tanpa master. Simpan ulang produk setelah memilih master untuk membersihkannya.</p>
+            ) : null}
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

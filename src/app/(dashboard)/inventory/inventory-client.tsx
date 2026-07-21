@@ -93,22 +93,22 @@ export function InventoryClient({ rows }: InventoryClientProps) {
                         {getStatusBadge(row.quantity, row.minStock)}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right">
-                        {row.stockId ? (
+                        {row.outletId ? (
                           <Button
                             variant="ghost"
                             onClick={() =>
-                              setActiveRow(activeRow?.stockId === row.stockId ? null : row)
+                              setActiveRow(activeRow?.productId === row.productId && activeRow?.outletId === row.outletId ? null : row)
                             }
                           >
-                            {activeRow?.stockId === row.stockId ? "Tutup" : "Sesuaikan"}
+                            {activeRow?.productId === row.productId && activeRow?.outletId === row.outletId ? "Tutup" : row.stockId ? "Sesuaikan" : "Tambah Stock Awal"}
                           </Button>
                         ) : (
-                          <span className="text-xs text-slate-400">Belum ada stok</span>
+                          <span className="text-xs text-slate-400">Pilih outlet dulu</span>
                         )}
                       </td>
                     </tr>
-                    {activeRow?.stockId === row.stockId && (
-                      <tr key={`form-${row.stockId}`}>
+                    {activeRow?.productId === row.productId && activeRow?.outletId === row.outletId && (
+                      <tr key={`form-${row.productId}-${row.outletId}`}>
                         <td colSpan={7} className="bg-slate-50/70 px-6 py-4">
                           <div className="max-w-sm">
                             <StockAdjustForm

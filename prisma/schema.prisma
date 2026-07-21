@@ -115,6 +115,8 @@ model Business {
   shifts       Shift[]
   categories   Category[]
   products     Product[]
+  masterVariants MasterVariant[]
+  masterToppings MasterTopping[]
   settings       BusinessSettings?
   paymentMethods PaymentMethod[]
   tables         Table[]
@@ -284,6 +286,7 @@ model Product {
   business      Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
   category      Category?          @relation(fields: [categoryId], references: [id])
   variants      ProductVariant[]
+  variantGroups ProductVariantGroup[]
   toppings      ProductTopping[]
   stocks        Stock[]
   transferItems StockTransferItem[]
@@ -320,14 +323,80 @@ model ProductVariant {
   orderItems      OrderItem[]
 }
 
+model ProductVariantGroup {
+  id              String   @id @default(cuid())
+  productId       String
+  masterVariantId String
+  isRequired      Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  product       Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  masterVariant MasterVariant @relation(fields: [masterVariantId], references: [id], onDelete: Restrict)
+
+  @@unique([productId, masterVariantId])
+  @@index([masterVariantId])
+}
+
 model ProductTopping {
+  id              String   @id @default(cuid())
+  productId       String
+  masterToppingId String?
+  name            String
+  price           Float    @default(0)
+  isActive        Boolean  @default(true)
+
+  product       Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  masterTopping MasterTopping? @relation(fields: [masterToppingId], references: [id], onDelete: SetNull)
+}
+
+model MasterVariant {
   id        String   @id @default(cuid())
-  productId String
+  businessId String
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business       Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  options        MasterVariantOption[]
+  productGroups  ProductVariantGroup[]
+
+  @@unique([businessId, name])
+  @@index([businessId, isActive])
+}
+
+model MasterVariantOption {
+  id              String   @id @default(cuid())
+  masterVariantId String
+  name            String
+  priceAdjustment Float    @default(0)
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  masterVariant   MasterVariant      @relation(fields: [masterVariantId], references: [id], onDelete: Cascade)
+  orderItemVariants OrderItemVariant[]
+
+  @@unique([masterVariantId, name])
+  @@index([masterVariantId, isActive])
+}
+
+model MasterTopping {
+  id        String   @id @default(cuid())
+  businessId String
   name      String
   price     Float    @default(0)
   isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  business        Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  productToppings ProductTopping[]
+
+  @@unique([businessId, name])
+  @@index([businessId, isActive])
 }
 
 // ============================================================
@@ -364,6 +433,8 @@ model StockMovement {
   stockId   String
   type      StockMovementType
   quantity  Int
+  stockBefore Int?
+  stockAfter  Int?
   note      String?
   reference String?
   createdBy String?
@@ -483,6 +554,23 @@ model OrderItem {
   product Product         @relation(fields: [productId], references: [id])
   variant ProductVariant? @relation(fields: [variantId], references: [id])
   toppings OrderItemTopping[]
+  variants OrderItemVariant[]
+}
+
+model OrderItemVariant {
+  id                    String @id @default(cuid())
+  orderItemId           String
+  masterVariantId       String?
+  masterVariantOptionId String?
+  groupName             String
+  optionName            String
+  priceAdjustment       Float  @default(0)
+
+  orderItem OrderItem            @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  option    MasterVariantOption? @relation(fields: [masterVariantOptionId], references: [id], onDelete: SetNull)
+
+  @@index([orderItemId])
+  @@index([masterVariantOptionId])
 }
 
 model OrderItemTopping {
@@ -723,6 +811,8 @@ model Customer {
   email       String?
   address     String?
   notes       String?
+  isActive    Boolean   @default(true)
+  deletedAt   DateTime?
   totalVisits Int       @default(0)
   totalSpent  Float     @default(0)
   lastVisit   DateTime?

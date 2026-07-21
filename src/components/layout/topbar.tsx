@@ -32,6 +32,8 @@ type PlanInfo = {
   name: string;
   displayName: string;
   status: string;
+  trialEndsAt?: string | null;
+  currentPeriodEnd?: string | null;
 };
 
 const DEMO_PERIODS = [
@@ -86,6 +88,10 @@ export function Topbar({
     month: "long",
     year: "numeric",
   }).format(new Date());
+  const subscriptionEndDate = plan?.status === "trial" ? plan?.trialEndsAt : plan?.currentPeriodEnd;
+  const subscriptionLabel = subscriptionEndDate
+    ? `${plan?.status === "trial" ? "Trial" : "Subscription"} berakhir: ${new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(subscriptionEndDate))}`
+    : null;
 
   return (
     <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -106,8 +112,14 @@ export function Topbar({
       <div className="flex flex-wrap items-center gap-3 xl:justify-end">
         
         {/* Date / Time (Minimalist) */}
-        <div className="hidden items-center gap-4 lg:flex">
+        <div className="hidden items-center gap-3 lg:flex">
           <p className="text-[13px] font-medium text-slate-500">{today}</p>
+          {subscriptionLabel ? (
+            <>
+              <div className="h-4 w-px bg-slate-300/60" />
+              <p className="max-w-[280px] truncate text-[13px] font-semibold text-slate-700">{subscriptionLabel}</p>
+            </>
+          ) : null}
           <div className="h-4 w-px bg-slate-300/60" />
         </div>
 
@@ -180,6 +192,11 @@ function PlanDropdown({ plan }: { plan?: PlanInfo | null }) {
   const planName = plan?.name || "starter";
   const displayName = plan?.displayName || "Starter";
   const status = plan?.status || "trial";
+  const trialEndsAt = plan?.trialEndsAt ? new Date(plan.trialEndsAt) : null;
+  const isTrialExpired = status === "trial" && trialEndsAt ? trialEndsAt.getTime() < Date.now() : false;
+  const trialText = trialEndsAt
+    ? `Trial berakhir: ${new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "long", year: "numeric" }).format(trialEndsAt)}`
+    : "Masa trial aktif";
 
   return (
     <div ref={ref} className="relative">
@@ -191,7 +208,9 @@ function PlanDropdown({ plan }: { plan?: PlanInfo | null }) {
         <Crown size={14} />
         <span className="hidden sm:inline">{displayName}</span>
         {status === "trial" && (
-          <span className="rounded-md bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold text-orange-600">TRIAL</span>
+          <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${isTrialExpired ? "bg-rose-100 text-rose-600" : "bg-orange-100 text-orange-600"}`}>
+            {isTrialExpired ? "TRIAL HABIS" : "TRIAL"}
+          </span>
         )}
       </button>
 
@@ -209,7 +228,9 @@ function PlanDropdown({ plan }: { plan?: PlanInfo | null }) {
               </div>
             </div>
             {status === "trial" && (
-              <p className="mt-1 text-xs text-orange-600 font-medium">Masa trial aktif</p>
+              <p className={`mt-1 text-xs font-medium ${isTrialExpired ? "text-rose-600" : "text-orange-600"}`}>
+                {isTrialExpired ? "Masa trial telah berakhir" : trialText}
+              </p>
             )}
             {status === "active" && (
               <p className="mt-1 text-xs text-green-600 font-medium">Berlangganan aktif</p>

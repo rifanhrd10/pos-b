@@ -55,7 +55,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
     include: { plan: true },
   });
   const plan = subscription
-    ? { name: subscription.plan.name, displayName: subscription.plan.displayName, status: subscription.status }
+    ? {
+        name: subscription.plan.name,
+        displayName: subscription.plan.displayName,
+        status: subscription.status,
+        trialEndsAt: subscription.trialEndsAt?.toISOString() ?? null,
+        currentPeriodEnd: subscription.currentPeriodEnd?.toISOString() ?? null,
+      }
     : null;
   const planFeatures = (subscription?.plan.features as string[]) || [];
   const visiblePlanFeatures = isOwner ? [] : planFeatures;

@@ -15,7 +15,6 @@ type CategoryFormProps = {
     id: string;
     name: string;
     description?: string | null;
-    icon?: string | null;
   };
 };
 
@@ -77,15 +76,6 @@ export function CategoryForm({ mode, category }: CategoryFormProps) {
               name="description"
               placeholder="Deskripsi singkat kategori"
               defaultValue={category?.description ?? ""}
-            />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Icon</label>
-            <Input
-              name="icon"
-              placeholder="Contoh: coffee, cup-soda"
-              defaultValue={category?.icon ?? ""}
             />
           </div>
 

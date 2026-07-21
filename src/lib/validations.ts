@@ -102,7 +102,6 @@ export const businessSetupSchemaV2 = z.object({
 export const categorySchema = z.object({
   name: z.string().min(2, "Nama kategori minimal 2 karakter"),
   description: z.string().optional(),
-  icon: z.string().optional(),
 });
 
 export const variantSchema = z.object({
@@ -114,6 +113,25 @@ export const variantSchema = z.object({
 export const toppingSchema = z.object({
   name: z.string().min(1, "Nama topping wajib diisi"),
   price: z.coerce.number().min(0, "Harga topping tidak valid"),
+});
+
+export const masterVariantSchema = z.object({
+  name: z.string().min(2, "Nama varian minimal 2 karakter"),
+  isActive: z.boolean().optional(),
+});
+
+export const masterVariantOptionSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, "Nama pilihan varian wajib diisi"),
+  priceAdjustment: z.coerce.number().min(0, "Harga tambahan tidak valid"),
+  isActive: z.boolean().optional(),
+  sortOrder: z.coerce.number().int().min(0).optional(),
+});
+
+export const masterToppingSchema = z.object({
+  name: z.string().min(2, "Nama topping minimal 2 karakter"),
+  price: z.coerce.number().min(0, "Harga tambahan tidak valid"),
+  isActive: z.boolean().optional(),
 });
 
 export const productSchema = z.object({
@@ -137,7 +155,7 @@ export const adjustStockSchema = z.object({
   outletId: z.string().min(1, "Outlet wajib dipilih"),
   productId: z.string().min(1, "Produk wajib dipilih"),
   variantId: z.string().optional(),
-  quantity: z.number().int("Jumlah harus bilangan bulat"),
+  quantity: z.number().int("Jumlah harus bilangan bulat").min(0, "Jumlah tidak boleh negatif"),
   type: z.enum(["IN", "OUT", "ADJUSTMENT"]),
   note: z.string().optional(),
   reference: z.string().optional(),

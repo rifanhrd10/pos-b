@@ -25,9 +25,8 @@ export async function getStockOverview(businessId: string, outletId?: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
 
-  // Fetch all products belonging to the business
   const products = await prisma.product.findMany({
-    where: { businessId, isActive: true },
+    where: { businessId, isActive: true, trackStock: true },
     include: {
       category: { select: { id: true, name: true } },
       stocks: {
@@ -118,13 +117,13 @@ export async function getRecentMovements(businessId: string, limit = 100) {
   const movements = await prisma.stockMovement.findMany({
     where: {
       stock: {
-        product: { businessId },
+        product: { businessId, trackStock: true },
       },
     },
     include: {
-      stock: {
-        include: {
-          product: { select: { id: true, name: true, sku: true } },
+    stock: {
+      include: {
+        product: { select: { id: true, name: true, sku: true } },
           outlet: { select: { id: true, name: true } },
         },
       },
@@ -137,6 +136,8 @@ export async function getRecentMovements(businessId: string, limit = 100) {
     id: m.id,
     type: m.type,
     quantity: m.quantity,
+    stockBefore: m.stockBefore,
+    stockAfter: m.stockAfter,
     note: m.note,
     reference: m.reference,
     createdBy: m.createdBy,
@@ -165,88 +166,73 @@ export async function adjustStock(data: AdjustStockData) {
     const { outletId, productId, variantId, quantity, type, note, reference, createdBy } =
       data;
 
-    // Ownership check: verify the outlet belongs to the current user's business
-    const outlet = await prisma.outlet.findFirst({
-      where: { id: outletId, businessId: ctx.businessId },
-    });
-    if (!outlet) return { success: false, error: "Forbidden" };
+    const result = await prisma.$transaction(async (tx) => {
+      const outlet = await tx.outlet.findFirst({
+        where: { id: outletId, businessId: ctx.businessId },
+        select: { id: true },
+      });
+      if (!outlet) throw new Error("Forbidden");
 
-    // Validate quantity is positive for IN/OUT
-    if ((type === "IN" || type === "OUT") && quantity <= 0) {
-      return { success: false, error: "Quantity must be positive" };
-    }
+      const product = await tx.product.findFirst({
+        where: { id: productId, businessId: ctx.businessId, trackStock: true, isActive: true },
+        select: { id: true },
+      });
+      if (!product) throw new Error("Produk tidak dilacak stoknya atau tidak ditemukan");
 
-    // Fetch or create Stock record (upsert)
-    const existing = await prisma.stock.findFirst({
-      where: {
-        outletId,
-        productId,
-        variantId: variantId ?? null,
-      },
-    });
+      if ((type === "IN" || type === "OUT") && quantity <= 0) {
+        throw new Error("Jumlah harus lebih dari 0");
+      }
 
-    const currentQty = existing?.quantity ?? 0;
+      const existing = await tx.stock.findFirst({
+        where: { outletId, productId, variantId: variantId ?? null },
+      });
+      const currentQty = existing?.quantity ?? 0;
 
-    let newQty: number;
-    let delta: number;
+      let newQty: number;
+      let delta: number;
+      switch (type) {
+        case "IN":
+          delta = quantity;
+          newQty = currentQty + quantity;
+          break;
+        case "OUT":
+          delta = -quantity;
+          newQty = currentQty - quantity;
+          if (newQty < 0) throw new Error("Stok keluar melebihi stok tersedia");
+          break;
+        case "ADJUSTMENT":
+          delta = quantity - currentQty;
+          newQty = quantity;
+          break;
+        default:
+          delta = quantity;
+          newQty = currentQty + quantity;
+          break;
+      }
 
-    switch (type) {
-      case "IN":
-        delta = quantity;
-        newQty = currentQty + quantity;
-        break;
-      case "OUT":
-        newQty = currentQty - quantity;
-        if (newQty < 0) {
-          return { success: false, error: "Insufficient stock" };
-        }
-        delta = -quantity;
-        break;
-      case "ADJUSTMENT":
-        delta = quantity - currentQty;
-        newQty = quantity;
-        break;
-      default:
-        // TRANSFER / OPNAME: caller passes pre-computed delta
-        delta = quantity;
-        newQty = currentQty + quantity;
-        break;
-    }
+      const stock = existing
+        ? await tx.stock.update({ where: { id: existing.id }, data: { quantity: newQty } })
+        : await tx.stock.create({ data: { outletId, productId, variantId: variantId ?? undefined, quantity: newQty } });
 
-    let stock;
-    if (variantId) {
-      stock = await prisma.stock.upsert({
-        where: {
-          outletId_productId_variantId: { outletId, productId, variantId },
+      await tx.stockMovement.create({
+        data: {
+          stockId: stock.id,
+          type,
+          quantity: delta,
+          stockBefore: currentQty,
+          stockAfter: newQty,
+          note: note ?? null,
+          reference: reference ?? null,
+          createdBy: createdBy ?? session.user.id,
         },
-        update: { quantity: newQty },
-        create: { outletId, productId, variantId, quantity: newQty },
       });
-    } else if (existing) {
-      stock = await prisma.stock.update({
-        where: { id: existing.id },
-        data: { quantity: newQty },
-      });
-    } else {
-      stock = await prisma.stock.create({
-        data: { outletId, productId, quantity: newQty },
-      });
-    }
 
-    await prisma.stockMovement.create({
-      data: {
-        stockId: stock.id,
-        type,
-        quantity: delta,
-        note: note ?? null,
-        reference: reference ?? null,
-        createdBy: createdBy ?? session.user.id,
-      },
+      return stock;
     });
 
     revalidatePath("/inventory");
 
-    return { success: true, stock };
+    return { success: true, stock: result };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return { success: false, error: message };

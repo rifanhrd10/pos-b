@@ -10,7 +10,7 @@ import { DateRangePicker } from "@/components/shared/date-range-picker"
 import { ExportExcelButton } from "@/components/shared/export-excel-button"
 
 interface PageProps {
-  searchParams: Promise<{ start?: string; end?: string }>
+  searchParams: Promise<{ start?: string; end?: string; start_date?: string; end_date?: string }>
 }
 
 function getDefaultDates() {
@@ -30,10 +30,13 @@ export default async function CashierReportPage({ searchParams }: PageProps) {
   const ctx = await getBusinessContext(session.user.id)
   if (!ctx) redirect("/dashboard")
 
-  const { start, end } = await searchParams
+  const { start, end, start_date, end_date } = await searchParams
   const { startStr, endStr } = getDefaultDates()
-  const startDate = new Date(start ?? startStr)
-  const endDate = new Date(end ?? endStr)
+  const activeStart = start_date ?? start ?? startStr
+  const activeEnd = end_date ?? end ?? endStr
+  const startDate = new Date(activeStart)
+  startDate.setHours(0, 0, 0, 0)
+  const endDate = new Date(activeEnd)
   // set endDate to end of day
   endDate.setHours(23, 59, 59, 999)
 
@@ -82,8 +85,8 @@ export default async function CashierReportPage({ searchParams }: PageProps) {
       {/* Filter bar */}
       <div className="flex items-center gap-3">
         <DateRangePicker
-          startDate={start ?? startStr}
-          endDate={end ?? endStr}
+          startDate={activeStart}
+          endDate={activeEnd}
         />
       </div>
 

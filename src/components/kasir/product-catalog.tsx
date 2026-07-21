@@ -7,7 +7,12 @@ import type { PosProduct } from "@/actions/kasir";
 interface ProductCatalogProps {
   products: PosProduct[];
   categories: Array<{ id: string; name: string }>;
-  onAddProduct: (product: PosProduct, variantId?: string, toppingIds?: string[]) => void;
+  onAddProduct: (
+    product: PosProduct,
+    variantId?: string,
+    toppingIds?: string[],
+    variantSelections?: Array<{ groupId: string; optionId: string }>
+  ) => void;
   activeTableName: string;
   onBackToTables: () => void;
 }
@@ -32,6 +37,7 @@ export function ProductCatalog({
   // Variant/Topping picker state
   const [pickerProduct, setPickerProduct] = useState<PosProduct | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [selectedVariantOptions, setSelectedVariantOptions] = useState<Record<string, string>>({});
   const [selectedToppingIds, setSelectedToppingIds] = useState<string[]>([]);
 
   // Filter products
@@ -45,6 +51,13 @@ export function ProductCatalog({
     if (product.hasVariants || product.hasTopping) {
       setPickerProduct(product);
       setSelectedVariantId(product.variants[0]?.id || null);
+      setSelectedVariantOptions(
+        Object.fromEntries(
+          product.variantGroups
+            .map((group) => [group.id, group.options[0]?.id])
+            .filter((entry): entry is [string, string] => Boolean(entry[1]))
+        )
+      );
       setSelectedToppingIds([]);
     } else {
       onAddProduct(product);
@@ -53,14 +66,25 @@ export function ProductCatalog({
 
   const handleAddFromPicker = () => {
     if (!pickerProduct) return;
-    onAddProduct(pickerProduct, selectedVariantId || undefined, selectedToppingIds);
+    const variantSelections = Object.entries(selectedVariantOptions).map(([groupId, optionId]) => ({ groupId, optionId }));
+    onAddProduct(pickerProduct, selectedVariantId || undefined, selectedToppingIds, variantSelections);
     setPickerProduct(null);
     setSelectedVariantId(null);
+    setSelectedVariantOptions({});
     setSelectedToppingIds([]);
   };
 
   const getVariantPrice = () => {
-    if (!pickerProduct || !selectedVariantId) return pickerProduct?.basePrice || 0;
+    if (!pickerProduct) return 0;
+    if (pickerProduct.variantGroups.length > 0) {
+      const adjustment = pickerProduct.variantGroups.reduce((sum, group) => {
+        const selectedOptionId = selectedVariantOptions[group.id];
+        const option = group.options.find((item) => item.id === selectedOptionId);
+        return sum + (option?.priceAdjustment || 0);
+      }, 0);
+      return pickerProduct.basePrice + adjustment;
+    }
+    if (!selectedVariantId) return pickerProduct.basePrice;
     const variant = pickerProduct.variants.find((v) => v.id === selectedVariantId);
     return pickerProduct.basePrice + (variant?.priceAdjustment || 0);
   };
@@ -228,7 +252,45 @@ export function ProductCatalog({
             </div>
 
             {/* Variants */}
-            {pickerProduct.hasVariants && (
+            {pickerProduct.variantGroups.length > 0 && (
+              <div className="mb-4">
+                <label className="block text-slate-600 text-xs font-semibold mb-2 uppercase tracking-wide">
+                  Pilih Varian
+                </label>
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {pickerProduct.variantGroups.map((group) => (
+                    <div key={group.id} className="min-w-[220px] rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <h4 className="text-sm font-extrabold text-slate-800">{group.name}</h4>
+                        {group.isRequired ? <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">Wajib</span> : null}
+                      </div>
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {group.options.map((option) => {
+                          const active = selectedVariantOptions[group.id] === option.id;
+                          return (
+                            <button
+                              key={option.id}
+                              type="button"
+                              onClick={() => setSelectedVariantOptions((current) => ({ ...current, [group.id]: option.id }))}
+                              className={`whitespace-nowrap rounded-xl border px-3 py-2 text-xs font-bold transition ${
+                                active
+                                  ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                                  : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:text-blue-700"
+                              }`}
+                            >
+                              {option.name}
+                              {option.priceAdjustment > 0 ? ` +${formatCurrency(option.priceAdjustment)}` : ""}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {pickerProduct.variantGroups.length === 0 && pickerProduct.hasVariants && (
               <div className="mb-4">
                 <label className="block text-slate-600 text-xs font-semibold mb-2 uppercase tracking-wide">
                   Pilih Varian

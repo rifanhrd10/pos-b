@@ -59,7 +59,7 @@ export default function OpnameForm({ items, outletId, userId }: OpnameFormProps)
       setSuccess(
         `Stok opname berhasil disimpan. ${result.adjustedCount} produk disesuaikan.`
       );
-      setTimeout(() => router.push("/inventory"), 1500);
+      setTimeout(() => router.push("/inventory/opname"), 1500);
     });
   }
 

@@ -18,6 +18,7 @@ export default async function EditCustomerPage({ params }: { params: Promise<{ i
     email: string | null;
     address: string | null;
     notes: string | null;
+    isActive: boolean;
   } | null;
 
   if (!customer) notFound();
@@ -43,6 +44,7 @@ export default async function EditCustomerPage({ params }: { params: Promise<{ i
           email: customer.email,
           address: customer.address,
           notes: customer.notes,
+          isActive: customer.isActive,
         }}
       />
     </div>

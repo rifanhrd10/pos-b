@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus, Search, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatRp, formatDate, timeAgo } from "@/lib/format";
+import { Badge } from "@/components/ui/badge";
+import { formatRp, timeAgo } from "@/lib/format";
 import { ExportExcelButton } from "@/components/shared/export-excel-button";
+import { DeleteCustomerButton } from "@/components/shared/delete-customer-button";
 
 export default async function CustomersPage({
   searchParams,
@@ -33,6 +35,7 @@ export default async function CustomersPage({
     totalVisits: number;
     totalSpent: number;
     lastVisit: Date | null;
+    isActive: boolean;
   }>;
 
   return (
@@ -95,13 +98,14 @@ export default async function CustomersPage({
                 <th className="whitespace-nowrap px-4 py-3 font-semibold text-slate-600">Kunjungan</th>
                 <th className="whitespace-nowrap px-4 py-3 font-semibold text-slate-600">Total Belanja</th>
                 <th className="whitespace-nowrap px-4 py-3 font-semibold text-slate-600">Terakhir</th>
+                <th className="whitespace-nowrap px-4 py-3 font-semibold text-slate-600">Status</th>
                 <th className="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-600">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {customers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                  <td colSpan={8} className="px-4 py-12 text-center text-slate-500">
                     {search ? (
                       <>Tidak ada pelanggan yang cocok dengan &quot;{search}&quot;</>
                     ) : (
@@ -132,11 +136,17 @@ export default async function CustomersPage({
                     <td className="whitespace-nowrap px-4 py-3 text-slate-500 text-xs">
                       {customer.lastVisit ? timeAgo(new Date(customer.lastVisit)) : "-"}
                     </td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <Badge tone={customer.isActive ? "success" : "warning"}>
+                        {customer.isActive ? "Aktif" : "Nonaktif"}
+                      </Badge>
+                    </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <div className="flex items-center justify-end">
+                      <div className="flex items-center justify-end gap-1">
                         <Link href={`/customers/${customer.id}/edit`} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700">
                           <Pencil size={15} />
                         </Link>
+                        <DeleteCustomerButton customerId={customer.id} />
                       </div>
                     </td>
                   </tr>

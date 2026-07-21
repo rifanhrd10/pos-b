@@ -20,7 +20,7 @@ export default async function ProductsPage() {
     image: product.image,
     categoryName: product.category?.name ?? null,
     basePrice: Number(product.basePrice),
-    variantsCount: product._count.variants,
+    variantsCount: product._count.variantGroups,
     toppingsCount: product._count.toppings,
     isActive: product.isActive,
   }));

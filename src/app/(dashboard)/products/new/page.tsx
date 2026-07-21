@@ -4,6 +4,7 @@ import { ProductForm } from "@/components/shared/product-form";
 import { AIRecommendationPanel } from "@/components/shared/ai-recommendation-panel";
 import { MenuOcrImporter } from "@/components/shared/menu-ocr-importer";
 import { prisma } from "@/lib/prisma";
+import { getMasterToppings, getMasterVariants } from "@/actions/master-options";
 
 export default async function NewProductPage() {
   const session = await auth();
@@ -11,10 +12,14 @@ export default async function NewProductPage() {
 
   const ctx = await getBusinessContext(session.user.id);
   if (!ctx) redirect("/dashboard");
-  const ownerBusiness = await prisma.business.findFirst({
-    where: { id: ctx.businessId, ownerId: session.user.id },
-    select: { settings: { select: { aiApiKey: true } } },
-  });
+  const [ownerBusiness, masterVariants, masterToppings] = await Promise.all([
+    prisma.business.findFirst({
+      where: { id: ctx.businessId, ownerId: session.user.id },
+      select: { settings: { select: { aiApiKey: true } } },
+    }),
+    getMasterVariants(ctx.businessId, false),
+    getMasterToppings(ctx.businessId, false),
+  ]);
   const aiEnabled = Boolean(ownerBusiness?.settings?.aiApiKey);
 
   return (
@@ -26,7 +31,15 @@ export default async function NewProductPage() {
           <AIRecommendationPanel />
         </>
       ) : null}
-      <ProductForm mode="create" businessId={ctx.businessId} />
+      <ProductForm
+        mode="create"
+        businessId={ctx.businessId}
+        masterVariants={masterVariants.map((variant) => ({
+          ...variant,
+          options: variant.options.map((option) => ({ ...option, priceAdjustment: Number(option.priceAdjustment) })),
+        }))}
+        masterToppings={masterToppings.map((topping) => ({ ...topping, price: Number(topping.price) }))}
+      />
     </div>
   );
 }
