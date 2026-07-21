@@ -60,11 +60,13 @@ export default async function ShiftDetailPage({ params }: PageProps) {
   let qrisSales = 0;
   let otherSales = 0;
 
+  const isQris = (m: string) => m.startsWith("QRIS");
+
   for (const o of paidOrders) {
     if (!o.payment) continue;
     const m = o.payment.method.toUpperCase();
     if (m === "CASH") cashSales += o.totalAmount;
-    else if (m === "QRIS") qrisSales += o.totalAmount;
+    else if (isQris(m)) qrisSales += o.totalAmount;
     else otherSales += o.totalAmount;
   }
 
@@ -280,7 +282,7 @@ export default async function ShiftDetailPage({ params }: PageProps) {
                           className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
                             order.payment.method.toUpperCase() === "CASH"
                               ? "bg-emerald-100 text-emerald-700"
-                              : order.payment.method.toUpperCase() === "QRIS"
+                              : isQris(order.payment.method.toUpperCase())
                               ? "bg-purple-100 text-purple-700"
                               : "bg-blue-100 text-blue-700"
                           }`}
