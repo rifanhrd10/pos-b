@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { jwtVerify, SignJWT } from "jose";
 import { prisma } from "@/lib/prisma";
 import { MobileApiError } from "@/lib/mobile-api";
@@ -8,10 +9,10 @@ const AUDIENCE = "bayaro-pos-offline";
 
 function signingKey() {
   const secret = process.env.MOBILE_AUTH_SECRET ?? process.env.AUTH_SECRET;
-  if (!secret || secret.length < 32) {
-    throw new Error("MOBILE_AUTH_SECRET atau AUTH_SECRET minimal 32 karakter wajib diatur");
+  if (!secret) {
+    throw new Error("MOBILE_AUTH_SECRET atau AUTH_SECRET wajib diatur");
   }
-  return new TextEncoder().encode(secret);
+  return createHash("sha256").update(secret).digest();
 }
 
 export type Entitlement = {
