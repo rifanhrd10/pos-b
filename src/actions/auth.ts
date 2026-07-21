@@ -1,11 +1,65 @@
 "use server";
 
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { loginSchema } from "@/lib/validations";
+import { loginSchema, registerSchema } from "@/lib/validations";
 import { signIn } from "@/lib/auth";
 
-export async function registerUser() {
-  return { error: "Pendaftaran mandiri tidak tersedia. Hubungi admin Bayaro." };
+export async function registerUser(formData: FormData) {
+  const raw = {
+    name: formData.get("name") as string,
+    email: formData.get("email") as string,
+    password: formData.get("password") as string,
+    confirmPassword: formData.get("confirmPassword") as string,
+  };
+
+  const result = registerSchema.safeParse(raw);
+  if (!result.success) {
+    return { error: result.error.issues[0]?.message ?? "Data pendaftaran tidak valid" };
+  }
+
+  const email = result.data.email.trim().toLowerCase();
+  const existing = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+  if (existing) {
+    return { error: "Email sudah terdaftar. Silakan login atau gunakan email lain." };
+  }
+
+  try {
+    await prisma.user.create({
+      data: {
+        name: result.data.name.trim(),
+        email,
+        password: await bcrypt.hash(result.data.password, 10),
+        role: "user",
+      },
+    });
+
+    const signInResult = await signIn("credentials", {
+      email,
+      password: result.data.password,
+      redirect: false,
+    });
+
+    if (
+      signInResult &&
+      typeof signInResult === "object" &&
+      "error" in signInResult &&
+      typeof signInResult.error === "string" &&
+      signInResult.error
+    ) {
+      return { error: signInResult.error };
+    }
+
+    return { success: true, redirectTo: "/onboarding/business" };
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
+      return { error: "Email sudah terdaftar. Silakan login atau gunakan email lain." };
+    }
+    return { error: "Gagal membuat akun. Silakan coba lagi." };
+  }
 }
 
 export async function loginUser(formData: FormData) {
