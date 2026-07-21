@@ -13,7 +13,7 @@ type Business = {
 } | null
 
 type Props = {
-  settings: BusinessSettings | null
+  settings: Omit<BusinessSettings, "aiApiKey"> | null
   business: Business
 }
 

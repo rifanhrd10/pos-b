@@ -1,4 +1,6 @@
 import type { Config } from "tailwindcss";
+import containerQueries from "@tailwindcss/container-queries";
+import forms from "@tailwindcss/forms";
 
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
@@ -120,8 +122,8 @@ const config: Config = {
     },
   },
   plugins: [
-    require('@tailwindcss/container-queries'),
-    require('@tailwindcss/forms')
+    containerQueries,
+    forms,
   ],
 };
 

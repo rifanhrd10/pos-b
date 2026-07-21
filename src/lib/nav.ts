@@ -22,6 +22,7 @@ import {
   UserCog,
   Package,
   LayoutGrid,
+  Armchair,
 } from "lucide-react";
 
 export type NavItem = {
@@ -58,6 +59,7 @@ export const navItems: NavItem[] = [
   { href: "/reports/inventory", label: "Inventori", icon: Package, permission: "reports.view" },
   { href: "/employees", label: "Karyawan", icon: Users, permission: "employees.view" },
   { href: "/outlets", label: "Outlet", icon: Store, permission: "settings.manage" },
+  { href: "/tables", label: "Master Meja", icon: Armchair, permission: "outlets.manage" },
   { href: "/roles", label: "Role & Akses", icon: Shield, permission: "settings.manage" },
   { href: "/settings/business", label: "Profil Bisnis", icon: Building2, permission: "settings.manage" },
   { href: "/settings/tax", label: "Pajak & Service", icon: Percent, permission: "settings.manage" },
@@ -114,7 +116,7 @@ export const navSections: NavSection[] = [
   {
     label: "Operasional",
     description: "Kelola karyawan, outlet, dan peran.",
-    items: ["/employees", "/outlets", "/roles"],
+    items: ["/employees", "/outlets", "/tables", "/roles"],
   },
   {
     label: "Pengaturan",

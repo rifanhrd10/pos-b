@@ -1,12 +1,27 @@
 "use client";
 
-import { PanelLeftClose, PanelLeftOpen, LogOut, Database, Trash2, Loader2, Crown } from "lucide-react";
+import {
+  PanelLeftClose,
+  PanelLeftOpen,
+  LogOut,
+  Database,
+  Trash2,
+  Loader2,
+  Crown,
+  X,
+  Store,
+  CalendarDays,
+  Activity,
+  Sparkles,
+  ShieldCheck,
+} from "lucide-react";
 import { OutletSwitcher } from "@/components/shared/outlet-switcher";
 import { switchActiveOutlet } from "@/actions/outlets";
 import { seedDemoData } from "@/actions/demo";
 import { cleanseData } from "@/actions/cleansing";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 type OutletOption = {
   id: string;
@@ -18,6 +33,19 @@ type PlanInfo = {
   displayName: string;
   status: string;
 };
+
+const DEMO_PERIODS = [
+  { days: 7, label: "7 hari", description: "Demo singkat" },
+  { days: 30, label: "30 hari", description: "Rekomendasi" },
+  { days: 60, label: "60 hari", description: "Tren 2 bulan" },
+  { days: 90, label: "90 hari", description: "Data lengkap" },
+];
+
+const DEMO_VOLUMES = [
+  { average: 5, label: "Ringan", description: "±5 transaksi/hari" },
+  { average: 10, label: "Normal", description: "±10 transaksi/hari" },
+  { average: 18, label: "Ramai", description: "±18 transaksi/hari" },
+];
 
 export function Topbar({
   userName,
@@ -93,7 +121,13 @@ export function Topbar({
         
         <div className="hidden h-4 w-px bg-slate-300/60 sm:block" />
 
-        <UserDropdown userName={userName} userRole={userRole} outletName={outletName} />
+        <UserDropdown
+          userName={userName}
+          userRole={userRole}
+          outletName={outletName}
+          outlets={outlets}
+          activeOutletId={activeOutletId}
+        />
       </div>
     </div>
   );
@@ -230,12 +264,33 @@ function PlanDropdown({ plan }: { plan?: PlanInfo | null }) {
 
 // ─── USER DROPDOWN (with Demo & Cleansing) ───────────────────────────────────
 
-function UserDropdown({ userName, userRole, outletName }: { userName: string; userRole: string; outletName: string }) {
+function UserDropdown({
+  userName,
+  userRole,
+  outletName,
+  outlets,
+  activeOutletId,
+}: {
+  userName: string;
+  userRole: string;
+  outletName: string;
+  outlets: OutletOption[];
+  activeOutletId: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState<"seed" | "cleanse" | null>(null);
   const [confirmCleanse, setConfirmCleanse] = useState(false);
+  const [showSeedDialog, setShowSeedDialog] = useState(false);
+  const [seedOutletId, setSeedOutletId] = useState(activeOutletId ?? outlets[0]?.id ?? "");
+  const [historyDays, setHistoryDays] = useState(30);
+  const [averageTransactions, setAverageTransactions] = useState(10);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const estimatedTransactions = historyDays * averageTransactions;
+  const periodEnd = new Date();
+  const periodStart = new Date();
+  periodStart.setDate(periodEnd.getDate() - historyDays + 1);
+  const compactDate = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric" });
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -249,12 +304,21 @@ function UserDropdown({ userName, userRole, outletName }: { userName: string; us
   }, []);
 
   async function handleSeed() {
+    if (!seedOutletId) return;
     setLoading("seed");
-    const res = await seedDemoData();
+    const res = await seedDemoData({
+      outletId: seedOutletId,
+      historyDays,
+      averageTransactionsPerDay: averageTransactions,
+    });
     setLoading(null);
     if (res.success) {
+      setShowSeedDialog(false);
       setOpen(false);
       router.refresh();
+      const count = "transactionCount" in res ? res.transactionCount : 0;
+      const targetOutlet = "outletName" in res ? res.outletName : "outlet terpilih";
+      alert(`${count} transaksi demo berhasil dibuat di ${targetOutlet}.`);
     } else {
       alert("Gagal: " + (res.error || "Unknown error"));
     }
@@ -309,7 +373,11 @@ function UserDropdown({ userName, userRole, outletName }: { userName: string; us
             <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400">Demo Tools</p>
             <button
               type="button"
-              onClick={handleSeed}
+              onClick={() => {
+                setSeedOutletId(activeOutletId ?? outlets[0]?.id ?? "");
+                setShowSeedDialog(true);
+                setOpen(false);
+              }}
               disabled={loading !== null}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50"
             >
@@ -320,7 +388,7 @@ function UserDropdown({ userName, userRole, outletName }: { userName: string; us
               )}
               <div className="text-left">
                 <p>Isi Data Demo</p>
-                <p className="text-[11px] font-normal text-slate-400">Produk, pelanggan, promo, stok</p>
+                <p className="text-[11px] font-normal text-slate-400">Pilih outlet, periode, dan volume transaksi</p>
               </div>
             </button>
             <button
@@ -341,7 +409,7 @@ function UserDropdown({ userName, userRole, outletName }: { userName: string; us
               <div className="text-left">
                 <p>{confirmCleanse ? "Klik lagi untuk konfirmasi" : "Cleansing Data"}</p>
                 <p className="text-[11px] font-normal text-slate-400">
-                  {confirmCleanse ? "Semua data akan dihapus!" : "Hapus semua data demo"}
+                  {confirmCleanse ? "Seluruh data bisnis aktif akan dihapus!" : "Hapus data hanya dari bisnis aktif"}
                 </p>
               </div>
             </button>
@@ -357,8 +425,166 @@ function UserDropdown({ userName, userRole, outletName }: { userName: string; us
               Keluar
             </a>
           </div>
-        </div>
+          </div>
       )}
+
+      {showSeedDialog && createPortal((
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-5">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="demo-dialog-title"
+            className="flex max-h-[calc(100vh-24px)] w-full max-w-2xl flex-col overflow-hidden rounded-[24px] border border-white/20 bg-white shadow-[0_30px_90px_rgba(15,23,42,0.35)] sm:max-h-[calc(100vh-40px)]"
+          >
+            <div className="relative shrink-0 overflow-hidden bg-gradient-to-br from-indigo-600 via-violet-600 to-blue-600 px-5 py-4 text-white sm:px-6">
+              <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-white/10" />
+              <div className="absolute -bottom-24 left-28 h-40 w-40 rounded-full bg-blue-300/10" />
+              <div className="relative flex items-start gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/15 shadow-inner backdrop-blur">
+                  <Sparkles size={23} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-100">Demo Data Generator</p>
+                  <h2 id="demo-dialog-title" className="mt-1 text-lg font-bold tracking-tight sm:text-xl">Siapkan data toko dalam sekali klik</h2>
+                  <p className="mt-1 text-sm leading-relaxed text-indigo-100/90">
+                    Pilih outlet dan pola keramaian. Sistem akan menyusun transaksi realistis sampai hari ini.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSeedDialog(false)}
+                  disabled={loading === "seed"}
+                  className="rounded-xl border border-white/10 bg-white/10 p-2 text-white/80 transition hover:bg-white/20 hover:text-white disabled:opacity-50"
+                  aria-label="Tutup dialog data demo"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4 sm:px-6">
+              <section>
+                <div className="mb-2.5 flex items-center gap-2 text-sm font-bold text-slate-800">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"><Store size={15} /></span>
+                  Outlet tujuan
+                </div>
+                <select
+                  aria-label="Outlet tujuan"
+                  value={seedOutletId}
+                  onChange={(event) => setSeedOutletId(event.target.value)}
+                  disabled={loading === "seed"}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                >
+                  {outlets.map((outlet) => (
+                    <option key={outlet.id} value={outlet.id}>{outlet.name}</option>
+                  ))}
+                </select>
+              </section>
+
+              <section>
+                <div className="mb-2.5 flex items-center gap-2 text-sm font-bold text-slate-800">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600"><CalendarDays size={15} /></span>
+                  Periode riwayat
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {DEMO_PERIODS.map((period) => {
+                    const selected = historyDays === period.days;
+                    return (
+                      <button
+                        key={period.days}
+                        type="button"
+                        onClick={() => setHistoryDays(period.days)}
+                        disabled={loading === "seed"}
+                        className={`rounded-xl border px-3 py-2 text-left transition disabled:opacity-50 ${
+                          selected
+                            ? "border-indigo-500 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-100"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span className="block text-sm font-bold">{period.label}</span>
+                        <span className={`mt-0.5 block text-[10px] ${selected ? "text-indigo-500" : "text-slate-400"}`}>{period.description}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section>
+                <div className="mb-2.5 flex items-center gap-2 text-sm font-bold text-slate-800">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600"><Activity size={15} /></span>
+                  Tingkat keramaian
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {DEMO_VOLUMES.map((volume) => {
+                    const selected = averageTransactions === volume.average;
+                    return (
+                      <button
+                        key={volume.average}
+                        type="button"
+                        onClick={() => setAverageTransactions(volume.average)}
+                        disabled={loading === "seed"}
+                        className={`rounded-xl border px-3 py-2 text-left transition disabled:opacity-50 ${
+                          selected
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-100"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span className="block text-sm font-bold">{volume.label}</span>
+                        <span className={`mt-0.5 block text-[10px] ${selected ? "text-emerald-600" : "text-slate-400"}`}>{volume.description}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="grid gap-2.5 rounded-2xl bg-slate-900 p-3.5 text-white sm:grid-cols-[1fr_auto] sm:items-center">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Estimasi hasil</p>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="text-3xl font-bold tracking-tight">±{estimatedTransactions.toLocaleString("id-ID")}</span>
+                    <span className="text-sm text-slate-300">transaksi</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {compactDate.format(periodStart)} – {compactDate.format(periodEnd)}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1.5 sm:max-w-[220px] sm:justify-end">
+                  {["Produk", "Pelanggan", "Stok", "Pembayaran", "Laporan"].map((item) => (
+                    <span key={item} className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-medium text-slate-200">{item}</span>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 border-t border-white/10 pt-2.5 text-[11px] text-slate-300 sm:col-span-2">
+                  <ShieldCheck size={14} className="shrink-0 text-emerald-400" />
+                  Demo lama pada outlet ini diganti; transaksi asli dan data bisnis lain tetap aman.
+                </div>
+              </section>
+            </div>
+
+            <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/80 px-5 py-3 sm:px-6">
+              <p className="hidden text-xs text-slate-400 sm:block">Proses biasanya selesai dalam beberapa detik.</p>
+              <div className="ml-auto flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowSeedDialog(false)}
+                  disabled={loading === "seed"}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSeed}
+                  disabled={!seedOutletId || loading === "seed"}
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:from-indigo-700 hover:to-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading === "seed" ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                  {loading === "seed" ? "Menyusun data..." : "Buat Data Demo"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ), document.body)}
     </div>
   );
 }

@@ -51,6 +51,11 @@ export async function cleanseData(options: CleansingOption[]) {
         await tx.payment.deleteMany({ where: { businessId } })
         await tx.order.deleteMany({ where: { businessId } })
         await tx.cashierSession.deleteMany({ where: { businessId } })
+        // Jika pelanggan tidak ikut dihapus, statistiknya tidak boleh menyisakan angka transaksi lama.
+        await tx.customer.updateMany({
+          where: { businessId },
+          data: { totalVisits: 0, totalSpent: 0, lastVisit: null },
+        })
       }
 
       // 2. Customers
@@ -102,7 +107,12 @@ export async function cleanseData(options: CleansingOption[]) {
       // 5. Employees (except owner)
       if (deleteEmployees) {
         await tx.employeeOutlet.deleteMany({
-          where: { employee: { businessId } },
+          where: {
+            employee: {
+              businessId,
+              userId: { not: context.userId },
+            },
+          },
         })
         // Keep the owner's employee record
         await tx.employee.deleteMany({

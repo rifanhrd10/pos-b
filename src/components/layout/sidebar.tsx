@@ -22,7 +22,9 @@ function SidebarContent({ collapsed, permissions, planFeatures, businessName, ou
     if (item.permission && !permissions.includes(item.permission)) return false;
     // Must have plan feature (if planFeatures provided)
     if (planFeatures && planFeatures.length > 0 && item.permission) {
-      if (!planFeatures.includes(item.permission)) return false;
+      const coveredByPlan = planFeatures.includes(item.permission)
+        || (item.permission === "pos.close_shift" && planFeatures.includes("shift.access"));
+      if (!coveredByPlan) return false;
     }
     return true;
   });

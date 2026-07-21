@@ -30,8 +30,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
     include: { role: true },
   });
   const employeePermissions = (employee?.role?.permissions as string[]) ?? [];
-  const permissions = employeePermissions.length > 0 ? employeePermissions : ALL_PERMISSIONS;
   const userRole = employee?.role?.name || "Admin";
+  const isOwner = userRole.toLowerCase() === "owner";
+  // Owner adalah administrator tertinggi di dalam bisnisnya sendiri. Paket tetap
+  // mengatur limit/fitur berbayar, tetapi tidak menyembunyikan menu administrasi.
+  const permissions = isOwner
+    ? ALL_PERMISSIONS
+    : employeePermissions.length > 0
+      ? employeePermissions
+      : ALL_PERMISSIONS;
   const hasCompletedTour = session?.user?.hasCompletedTour ?? true;
 
   const outlets = await prisma.outlet.findMany({
@@ -51,6 +58,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ? { name: subscription.plan.name, displayName: subscription.plan.displayName, status: subscription.status }
     : null;
   const planFeatures = (subscription?.plan.features as string[]) || [];
+  const visiblePlanFeatures = isOwner ? [] : planFeatures;
 
   return (
     <>
@@ -60,7 +68,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         businessName={ctx.businessName}
         outletName={outletName}
         permissions={permissions}
-        planFeatures={planFeatures}
+        planFeatures={visiblePlanFeatures}
         outlets={outlets}
         activeOutletId={activeOutletId}
         plan={plan}

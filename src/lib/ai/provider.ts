@@ -3,7 +3,8 @@ import { getBuiltInRecommendations } from "./templates";
 import { recommendProductsByGemini } from "./gemini";
 
 export async function getProductRecommendations(
-  businessType: string
+  businessType: string,
+  ownerApiKey?: string | null,
 ): Promise<{ templates: ProductDraft[]; gemini: ProductDraft[]; geminiError: string | null }> {
   const templates = getBuiltInRecommendations(businessType);
 
@@ -11,7 +12,7 @@ export async function getProductRecommendations(
   let geminiError: string | null = null;
 
   try {
-    const geminiResult = await recommendProductsByGemini(businessType);
+    const geminiResult = await recommendProductsByGemini(businessType, ownerApiKey);
     if (geminiResult.success) {
       gemini = geminiResult.data;
     } else {

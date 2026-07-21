@@ -13,11 +13,12 @@ export async function getRecommendations() {
 
   const business = await prisma.business.findFirst({
     where: { ownerId: session.user.id },
-    select: { id: true, type: true },
+    select: { id: true, type: true, settings: { select: { aiApiKey: true } } },
   });
   if (!business) return { error: "Business not found" };
+  if (!business.settings?.aiApiKey) return { error: "API key AI belum diatur" };
 
-  const result = await getProductRecommendations(business.type);
+  const result = await getProductRecommendations(business.type, business.settings.aiApiKey);
   return {
     success: true as const,
     businessType: business.type,
@@ -111,7 +112,12 @@ export async function scanMenuImage(formData: FormData) {
   const base64 = buffer.toString("base64");
 
   try {
-    const result = await scanMenuByGemini(base64, file.type);
+    const business = await prisma.business.findFirst({
+      where: { ownerId: session.user.id },
+      select: { settings: { select: { aiApiKey: true } } },
+    });
+    if (!business?.settings?.aiApiKey) return { error: "API key AI belum diatur" };
+    const result = await scanMenuByGemini(base64, file.type, business.settings.aiApiKey);
     if (!result.success) {
       return { error: result.error };
     }

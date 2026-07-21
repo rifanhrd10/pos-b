@@ -2,18 +2,18 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { ProductDraft } from "./types";
 import { buildRecommendPrompt, buildMenuScanPrompt } from "./prompts";
 
-const apiKey = process.env.GEMINI_API_KEY;
-
-function getClient() {
-  if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
+function getClient(ownerApiKey?: string | null) {
+  const apiKey = ownerApiKey ?? process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("Gemini API key belum diatur oleh owner");
   return new GoogleGenerativeAI(apiKey);
 }
 
 export async function recommendProductsByGemini(
-  businessType: string
+  businessType: string,
+  ownerApiKey?: string | null,
 ): Promise<{ success: true; data: ProductDraft[] } | { success: false; error: string }> {
   try {
-    const genAI = getClient();
+    const genAI = getClient(ownerApiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const prompt = buildRecommendPrompt(businessType);
     const result = await model.generateContent(prompt);
@@ -34,10 +34,11 @@ export async function recommendProductsByGemini(
 
 export async function scanMenuByGemini(
   base64Image: string,
-  mimeType: string
+  mimeType: string,
+  ownerApiKey?: string | null,
 ): Promise<{ success: true; data: ProductDraft[] } | { success: false; error: string }> {
   try {
-    const genAI = getClient();
+    const genAI = getClient(ownerApiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const prompt = buildMenuScanPrompt();
 

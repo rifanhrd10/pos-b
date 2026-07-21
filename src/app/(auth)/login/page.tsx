@@ -10,39 +10,53 @@ export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingDemo, setLoadingDemo] = useState<"admin" | "manager" | "kasir" | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleDemo = (role: 'admin' | 'kasir' | 'manager') => {
-    setEmail(`${role}@bayaro.id`);
-    setPassword("demo123");
-  };
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  const performLogin = async (loginEmail: string, loginPassword: string) => {
     setError("");
     setLoading(true);
 
     const formData = new FormData();
-    formData.append("email", email);
-    formData.append("password", password);
+    formData.append("email", loginEmail);
+    formData.append("password", loginPassword);
     const result = await loginUser(formData);
 
     if (result?.error) {
       setError(result.error);
       setLoading(false);
+      setLoadingDemo(null);
     } else {
       router.push(result?.redirectTo || "/dashboard");
     }
+  };
+
+  const handleDemo = async (role: 'admin' | 'kasir' | 'manager') => {
+    const demoEmail = `${role}@bayaro.id`;
+    setEmail(demoEmail);
+    setPassword("demo123");
+    setLoadingDemo(role);
+    await performLogin(demoEmail, "demo123");
+  };
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    await performLogin(email, password);
   }
 
   return (
-    <main className="flex min-h-screen overflow-hidden text-on-background bg-background font-body-md selection:bg-secondary-container selection:text-on-secondary-container">
+    <main className="relative flex min-h-screen overflow-hidden text-on-background bg-background font-body-md selection:bg-secondary-container selection:text-on-secondary-container">
+      <div className="absolute inset-0 md:hidden">
+        <img alt="Bayaro POS coffee shop" className="h-full w-full object-cover" src="/images/bayaro-login-background.png" />
+        <div className="absolute inset-0 bg-slate-950/65 backdrop-blur-[1px]" />
+      </div>
       {/* Left Hero Column */}
       <section className="relative hidden w-7/12 md:flex flex-col justify-between overflow-hidden bg-primary">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
-          <img alt="Modern POS setup" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMkfvqYg4Vi6MlSuFFVlDYjk2X0HCKu0nQwBILABN3ocA9iXCisXldartSydijcBrYj2aMtqzuNBAAn_zP1Kru_2H0-wH4OfUsjblraA907u96kBPI4sS5b0HtXYCs2l--yDzyh77DfluVMR9mzebzHhGRzic0RWmvPPNSe7Gjr_LjtIcyRwOtNQALZ16mPepKaX3fK3EW_y77Rw5AHpYIgIKoHB572NzxCq27etXomtuaWM3Tlw" />
+          <img alt="Bayaro POS coffee shop" className="w-full h-full object-cover" src="/images/bayaro-login-background.png" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/82 via-slate-950/48 to-slate-950/12"></div>
           <div className="absolute inset-0 hero-overlay"></div>
         </div>
 
@@ -103,8 +117,8 @@ export default function LoginPage() {
       </section>
 
       {/* Right Login Column */}
-      <section className="flex-1 bg-surface-container-lowest flex flex-col justify-center items-center px-8 lg:px-24">
-        <div className="w-full max-w-md">
+      <section className="relative z-10 flex-1 bg-surface-container-lowest/95 md:bg-surface-container-lowest flex flex-col justify-center items-center px-8 py-8 lg:px-24">
+        <div className="w-full max-w-md rounded-[28px] bg-white/92 p-6 shadow-2xl shadow-slate-950/10 backdrop-blur-xl md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-0">
           {/* Mobile Logo */}
           <div className="md:hidden flex items-center justify-center mb-12">
             <BayaroLogo />
@@ -171,13 +185,43 @@ export default function LoginPage() {
             </p>
           </div>
 
+          <div className="mt-6 rounded-2xl border border-outline-variant/60 bg-white/70 p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-outline">Akun Demo</p>
+                <p className="mt-1 text-sm text-on-surface-variant">Klik salah satu akun untuk masuk otomatis.</p>
+              </div>
+              <span className="material-symbols-outlined text-primary">bolt</span>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {[
+                { role: "admin" as const, label: "Owner", email: "admin@bayaro.id" },
+                { role: "manager" as const, label: "Manager", email: "manager@bayaro.id" },
+                { role: "kasir" as const, label: "Kasir", email: "kasir@bayaro.id" },
+              ].map((account) => (
+                <button
+                  key={account.role}
+                  type="button"
+                  onClick={() => handleDemo(account.role)}
+                  disabled={loading}
+                  className="rounded-xl border border-outline-variant bg-surface px-3 py-2.5 text-left transition hover:border-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="block text-sm font-bold text-on-surface">
+                    {loadingDemo === account.role ? "Masuk..." : account.label}
+                  </span>
+                  <span className="mt-0.5 block truncate text-[11px] text-on-surface-variant">{account.email}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Kasir Entry */}
           <div className="relative my-6">
             <div aria-hidden="true" className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-outline-variant/40"></div>
             </div>
             <div className="relative flex justify-center text-label-md uppercase tracking-widest font-label-md">
-              <span className="bg-surface-container-lowest px-4 text-outline/50">atau</span>
+              <span className="bg-white px-4 text-outline/50 md:bg-surface-container-lowest">atau</span>
             </div>
           </div>
 
@@ -191,7 +235,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer Mobile */}
-        <footer className="mt-16 w-full md:hidden flex flex-col gap-4 items-center">
+        <footer className="relative z-10 mt-16 w-full md:hidden flex flex-col gap-4 items-center">
           <div className="flex gap-6">
             <Link className="font-label-md text-label-md text-outline hover:text-on-surface" href="#">Bantuan</Link>
             <Link className="font-label-md text-label-md text-outline hover:text-on-surface" href="#">Privasi</Link>

@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 export async function getEmployees(businessId: string) {
   return prisma.employee.findMany({
     where: { businessId },
+    omit: { pin: true },
     include: {
       role: true,
       outlets: { include: { outlet: true } },
@@ -20,6 +21,7 @@ export async function getEmployees(businessId: string) {
 export async function getEmployee(id: string) {
   return prisma.employee.findUnique({
     where: { id },
+    omit: { pin: true },
     include: {
       role: true,
       outlets: { include: { outlet: true } },
@@ -61,7 +63,7 @@ export async function createEmployee(formData: FormData) {
       email: email || undefined,
       phone: phone || undefined,
       roleId,
-      pin: pin || undefined,
+      pin: pin ? await bcrypt.hash(pin, 10) : undefined,
     },
   });
 
@@ -103,7 +105,7 @@ export async function updateEmployee(id: string, formData: FormData) {
       email: email || undefined,
       phone: phone || undefined,
       roleId,
-      pin: pin || undefined,
+      pin: pin ? await bcrypt.hash(pin, 10) : undefined,
     },
   });
 

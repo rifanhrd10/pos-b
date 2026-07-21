@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { updateGeneralSettings } from "@/actions/settings"
+import { updateAiApiKey, updateGeneralSettings } from "@/actions/settings"
 import { Button } from "@/components/ui/button"
 
 interface BusinessSettings {
@@ -13,6 +13,7 @@ interface BusinessSettings {
 
 interface GeneralFormProps {
   settings: BusinessSettings | null
+  aiApiKeyConfigured: boolean
 }
 
 const DATE_FORMATS = [
@@ -32,13 +33,14 @@ const LANGUAGES = [
   { value: "en", label: "English" },
 ]
 
-export function GeneralForm({ settings }: GeneralFormProps) {
+export function GeneralForm({ settings, aiApiKeyConfigured }: GeneralFormProps) {
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const [loading, setLoading] = useState(false)
   const [dateFormat, setDateFormat] = useState(settings?.dateFormat ?? "DD/MM/YYYY")
   const [timezone, setTimezone] = useState(settings?.timezone ?? "Asia/Jakarta")
   const [language, setLanguage] = useState(settings?.language ?? "id")
   const [autoPrint, setAutoPrint] = useState(settings?.autoPrintReceipt ?? false)
+  const [aiApiKey, setAiApiKey] = useState("")
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -52,10 +54,13 @@ export function GeneralForm({ settings }: GeneralFormProps) {
       autoPrintReceipt: autoPrint,
     })
 
-    if (result.success) {
+    const aiResult = aiApiKey.trim() ? await updateAiApiKey(aiApiKey) : { success: true }
+
+    if (result.success && aiResult.success) {
       setStatus({ type: "success", message: "Perubahan berhasil disimpan" })
+      setAiApiKey("")
     } else {
-      setStatus({ type: "error", message: result.error ?? "Terjadi kesalahan" })
+      setStatus({ type: "error", message: result.error ?? aiResult.error ?? "Terjadi kesalahan" })
     }
     setLoading(false)
   }
@@ -127,6 +132,28 @@ export function GeneralForm({ settings }: GeneralFormProps) {
               }`}
             />
           </button>
+        </div>
+
+        <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">Gemini API Key untuk fitur AI</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Rekomendasi AI dan scan menu hanya muncul pada akun owner setelah key tersimpan.
+              </p>
+            </div>
+            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${aiApiKeyConfigured ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+              {aiApiKeyConfigured ? "Sudah aktif" : "Belum diatur"}
+            </span>
+          </div>
+          <input
+            type="password"
+            value={aiApiKey}
+            onChange={(event) => setAiApiKey(event.target.value)}
+            placeholder={aiApiKeyConfigured ? "Isi hanya untuk mengganti API key" : "Masukkan Gemini API key"}
+            autoComplete="off"
+            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+          />
         </div>
 
         {status && (

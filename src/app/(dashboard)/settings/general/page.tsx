@@ -20,7 +20,10 @@ export default async function GeneralSettingsPage() {
         <h1 className="text-2xl font-bold text-slate-900">General</h1>
         <p className="text-sm text-slate-500">Preferensi tampilan dan perilaku aplikasi</p>
       </div>
-      <GeneralForm settings={data?.settings ?? null} />
+      <GeneralForm
+        settings={data?.settings ?? null}
+        aiApiKeyConfigured={data?.aiApiKeyConfigured ?? false}
+      />
     </div>
   )
 }

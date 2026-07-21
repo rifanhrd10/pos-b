@@ -48,10 +48,15 @@ export function BusinessForm({ business, storeCode: initialStoreCode }: Business
   }
 
   async function handleGenerateCode() {
+    if (storeCode && !window.confirm("Buat ulang kode dari nama bisnis saat ini? Kode lama tidak dapat dipakai lagi oleh kasir.")) return
     setCodeLoading(true)
+    setStatus(null)
     const result = await generateStoreCode()
     if (result.success && result.storeCode) {
       setStoreCode(result.storeCode)
+      setStatus({ type: "success", message: `Kode toko diperbarui menjadi ${result.storeCode}` })
+    } else {
+      setStatus({ type: "error", message: result.error ?? "Gagal membuat kode toko" })
     }
     setCodeLoading(false)
   }
@@ -95,7 +100,7 @@ export function BusinessForm({ business, storeCode: initialStoreCode }: Business
               onClick={handleGenerateCode}
               disabled={codeLoading}
               className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 disabled:opacity-50"
-              title="Generate ulang"
+              title="Buat ulang dari nama bisnis"
             >
               <RefreshCw size={18} className={codeLoading ? "animate-spin" : ""} />
             </button>
@@ -108,7 +113,7 @@ export function BusinessForm({ business, storeCode: initialStoreCode }: Business
             className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
           >
             <RefreshCw size={16} className={codeLoading ? "animate-spin" : ""} />
-            {codeLoading ? "Generating..." : "Generate Kode Toko"}
+            {codeLoading ? "Membuat kode..." : "Buat Kode dari Nama Toko"}
           </button>
         )}
 
@@ -117,7 +122,7 @@ export function BusinessForm({ business, storeCode: initialStoreCode }: Business
         )}
 
         <p className="mt-3 text-xs text-slate-400">
-          Bagikan kode ini ke kasir. Mereka bisa akses POS di <span className="font-mono">/kasir/enter</span> lalu masukkan kode ini.
+          Kode dibuat otomatis dari nama bisnis agar mudah diingat. Jika nama yang sama sudah dipakai, sistem menambahkan angka pendek. Bagikan kode ini ke kasir untuk masuk melalui <span className="font-mono">/kasir/enter</span>.
         </p>
       </div>
 

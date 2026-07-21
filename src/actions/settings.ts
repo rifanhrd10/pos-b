@@ -4,6 +4,7 @@ import { auth, getBusinessContext } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import bcrypt from "bcryptjs"
+import { generateUniqueStoreCode } from "@/lib/store-code"
 import {
   updateBusinessProfileSchema,
   updateTaxSettingsSchema,
@@ -47,7 +48,11 @@ export async function getBusinessSettings() {
     }),
   ])
 
-  return { business, settings, paymentMethods }
+  const aiApiKeyConfigured = Boolean(settings?.aiApiKey)
+  const safeSettings = settings
+    ? (({ aiApiKey: _secret, ...visibleSettings }) => visibleSettings)(settings)
+    : null
+  return { business, settings: safeSettings, paymentMethods, aiApiKeyConfigured }
 }
 
 // ─── BUSINESS PROFILE ────────────────────────────────────────────────────────
@@ -90,22 +95,13 @@ export async function generateStoreCode() {
     const authCtx = await getAuthContext()
     if (!authCtx) return { success: false, error: "Unauthorized" }
 
-    // Generate a random 8-char alphanumeric code
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-    let code = ""
-    for (let i = 0; i < 8; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
+    const business = await prisma.business.findUnique({
+      where: { id: authCtx.businessId },
+      select: { id: true, name: true },
+    })
+    if (!business) return { success: false, error: "Bisnis tidak ditemukan" }
 
-    // Ensure uniqueness
-    const existing = await prisma.business.findUnique({ where: { storeCode: code } })
-    if (existing) {
-      // Retry once with different code
-      code = ""
-      for (let i = 0; i < 8; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length))
-      }
-    }
+    const code = await generateUniqueStoreCode(business.name, business.id)
 
     await prisma.business.update({
       where: { id: authCtx.businessId },
@@ -195,6 +191,30 @@ export async function updateGeneralSettings(data: Record<string, unknown>) {
     return { success: true }
   } catch (_e) {
     return { success: false, error: "Gagal menyimpan pengaturan umum" }
+  }
+}
+
+export async function updateAiApiKey(apiKey: string) {
+  try {
+    const authCtx = await getAuthContext()
+    if (!authCtx) return { success: false, error: "Unauthorized" }
+    const owner = await prisma.business.findFirst({
+      where: { id: authCtx.businessId, ownerId: authCtx.userId },
+      select: { id: true },
+    })
+    if (!owner) return { success: false, error: "Hanya owner yang dapat mengatur API key AI" }
+    const normalized = apiKey.trim()
+    if (normalized.length < 20) return { success: false, error: "API key AI tidak valid" }
+    await prisma.businessSettings.upsert({
+      where: { businessId: authCtx.businessId },
+      create: { businessId: authCtx.businessId, aiApiKey: normalized },
+      update: { aiApiKey: normalized },
+    })
+    revalidatePath("/settings/general")
+    revalidatePath("/products/new")
+    return { success: true }
+  } catch (_error) {
+    return { success: false, error: "Gagal menyimpan API key AI" }
   }
 }
 

@@ -10,6 +10,7 @@ import {
 } from "@/lib/validations";
 import { DEFAULT_ROLES } from "@/lib/permissions";
 import type { BusinessType } from "@prisma/client";
+import { generateUniqueStoreCode } from "@/lib/store-code";
 
 // Helper: get current user's business
 async function getUserBusiness(userId: string) {
@@ -51,14 +52,16 @@ export async function setupBusiness(formData: FormData) {
   // Check if business already exists (edit mode during onboarding)
   const existing = await getUserBusiness(session.user.id);
   if (existing) {
+    const storeCode = await generateUniqueStoreCode(result.data.name, existing.id);
     await prisma.business.update({
       where: { id: existing.id },
-      data: { ...result.data, logo, onboardingStep: 2 },
+      data: { ...result.data, logo, storeCode, onboardingStep: 2 },
     });
     return { success: true };
   }
 
   // Create business
+  const storeCode = await generateUniqueStoreCode(result.data.name);
   const business = await prisma.business.create({
     data: {
       ownerId: session.user.id,
@@ -70,6 +73,7 @@ export async function setupBusiness(formData: FormData) {
       province: result.data.province,
       npwp: result.data.npwp,
       logo,
+      storeCode,
       onboardingStep: 2,
     },
   });

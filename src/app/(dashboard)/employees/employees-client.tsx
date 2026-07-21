@@ -20,7 +20,6 @@ type Employee = {
   email: string | null;
   phone: string | null;
   isActive: boolean;
-  pin: string | null;
   role: { id: string; name: string } | null;
   outlets: { outlet: { id: string; name: string } }[];
 };
@@ -298,7 +297,7 @@ export function EmployeesClient({
                 pattern="\d*"
                 placeholder="4-6 digit PIN" 
                 maxLength={6} 
-                defaultValue={editingEmployee?.pin || ""} 
+                defaultValue=""
                 onInput={(e) => {
                   e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "");
                 }}
