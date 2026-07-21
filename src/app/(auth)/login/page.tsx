@@ -10,30 +10,39 @@ export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingDemo, setLoadingDemo] = useState<"admin" | "manager" | "kasir" | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleDemo = (role: 'admin' | 'kasir' | 'manager') => {
-    setEmail(`${role}@bayaro.id`);
-    setPassword("demo123");
-  };
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  const performLogin = async (loginEmail: string, loginPassword: string) => {
     setError("");
     setLoading(true);
 
     const formData = new FormData();
-    formData.append("email", email);
-    formData.append("password", password);
+    formData.append("email", loginEmail);
+    formData.append("password", loginPassword);
     const result = await loginUser(formData);
 
     if (result?.error) {
       setError(result.error);
       setLoading(false);
+      setLoadingDemo(null);
     } else {
       router.push(result?.redirectTo || "/dashboard");
     }
+  };
+
+  const handleDemo = async (role: 'admin' | 'kasir' | 'manager') => {
+    const demoEmail = `${role}@bayaro.id`;
+    setEmail(demoEmail);
+    setPassword("demo123");
+    setLoadingDemo(role);
+    await performLogin(demoEmail, "demo123");
+  };
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    await performLogin(email, password);
   }
 
   return (
@@ -169,6 +178,36 @@ export default function LoginPage() {
             <p className="font-body-md text-body-md text-on-surface-variant">
               Belum punya akun? <Link className="text-secondary font-semibold hover:underline" href="/register">Daftar Gratis Sekarang</Link>
             </p>
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-outline-variant/60 bg-white/70 p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-outline">Akun Demo</p>
+                <p className="mt-1 text-sm text-on-surface-variant">Klik salah satu akun untuk masuk otomatis.</p>
+              </div>
+              <span className="material-symbols-outlined text-primary">bolt</span>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {[
+                { role: "admin" as const, label: "Owner", email: "admin@bayaro.id" },
+                { role: "manager" as const, label: "Manager", email: "manager@bayaro.id" },
+                { role: "kasir" as const, label: "Kasir", email: "kasir@bayaro.id" },
+              ].map((account) => (
+                <button
+                  key={account.role}
+                  type="button"
+                  onClick={() => handleDemo(account.role)}
+                  disabled={loading}
+                  className="rounded-xl border border-outline-variant bg-surface px-3 py-2.5 text-left transition hover:border-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="block text-sm font-bold text-on-surface">
+                    {loadingDemo === account.role ? "Masuk..." : account.label}
+                  </span>
+                  <span className="mt-0.5 block truncate text-[11px] text-on-surface-variant">{account.email}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Kasir Entry */}

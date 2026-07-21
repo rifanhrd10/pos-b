@@ -50,6 +50,7 @@ export async function POST(request: Request) {
       businessId: session.businessId,
       employeeId: session.employee.id,
       deviceId: session.deviceId,
+      outletId: session.selectedOutletId,
     });
 
     return noStoreJson({ accessToken, refreshToken });

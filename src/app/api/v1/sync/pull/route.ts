@@ -16,11 +16,12 @@ export async function GET(request: NextRequest) {
       orderBy: { sequence: "asc" },
       take: 500,
     });
-    const ids: Record<"category" | "product" | "outlet" | "customer", string[]> = {
+    const ids: Record<"category" | "product" | "outlet" | "customer" | "table", string[]> = {
       category: [],
       product: [],
       outlet: [],
       customer: [],
+      table: [],
     };
     const deleted: { entityType: string; entityId: string; deletedAt: number }[] = [];
     for (const change of changes) {
@@ -41,6 +42,7 @@ export async function GET(request: NextRequest) {
         product: [...new Set(ids.product)],
         outlet: [...new Set(ids.outlet)],
         customer: [...new Set(ids.customer)],
+        table: [...new Set(ids.table)],
       }),
       getEntitlement({
         businessId: context.businessId,
@@ -78,6 +80,16 @@ export async function GET(request: NextRequest) {
             address: null,
             isActive: false,
           });
+        } else if (item.entityType === "table") {
+          result.tables.push({
+            ...base,
+            businessId: context.businessId,
+            outletId: "",
+            name: "",
+            capacity: 0,
+            isActive: false,
+            sortOrder: 0,
+          });
         } else if (item.entityType === "customer") {
           result.customers.push({
             ...base,
@@ -94,6 +106,7 @@ export async function GET(request: NextRequest) {
         categories: [] as typeof catalog.categories,
         products: [] as typeof catalog.products,
         outlets: [] as typeof catalog.outlets,
+        tables: [] as typeof catalog.tables,
         customers: [] as typeof catalog.customers,
       }
     );
@@ -103,7 +116,9 @@ export async function GET(request: NextRequest) {
       categories: [...catalog.categories, ...tombstones.categories],
       products: [...catalog.products, ...tombstones.products],
       outlets: [...catalog.outlets, ...tombstones.outlets],
+      tables: [...catalog.tables, ...tombstones.tables],
       customers: [...catalog.customers, ...tombstones.customers],
+      paymentMethods: catalog.paymentMethods,
       deleted,
       entitlement,
       serverTime: Date.now(),

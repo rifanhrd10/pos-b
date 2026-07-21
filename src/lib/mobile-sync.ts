@@ -3,6 +3,12 @@ import { prisma } from "@/lib/prisma";
 
 const version = (date: Date) => date.getTime();
 
+function mobileImageUrl(value: string | null) {
+  if (!value || /^https?:\/\//i.test(value)) return value;
+  const mediaBaseUrl = process.env.MOBILE_MEDIA_BASE_URL?.replace(/\/$/, "");
+  return mediaBaseUrl ? `${mediaBaseUrl}/${value.replace(/^\//, "")}` : value;
+}
+
 export async function currentSyncCursor(businessId: string) {
   const latest = await prisma.syncChange.findFirst({
     where: { businessId },
@@ -14,10 +20,10 @@ export async function currentSyncCursor(businessId: string) {
 
 export async function catalogSnapshot(
   context: MobileAuthContext,
-  changed?: Partial<Record<"category" | "product" | "outlet" | "customer", string[]>>
+  changed?: Partial<Record<"category" | "product" | "outlet" | "customer" | "table", string[]>>
 ) {
-  const primaryOutletId = context.outletIds[0];
-  const [categories, products, outlets, customers] = await Promise.all([
+  const primaryOutletId = context.selectedOutletId ?? context.outletIds[0];
+  const [categories, products, outlets, tables, customers, paymentMethods] = await Promise.all([
     prisma.category.findMany({
       where: {
         businessId: context.businessId,
@@ -43,12 +49,24 @@ export async function catalogSnapshot(
       },
       orderBy: { name: "asc" },
     }),
+    prisma.table.findMany({
+      where: {
+        businessId: context.businessId,
+        outletId: { in: context.outletIds },
+        ...(changed?.table ? { id: { in: changed.table } } : {}),
+      },
+      orderBy: [{ outlet: { name: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
+    }),
     prisma.customer.findMany({
       where: {
         businessId: context.businessId,
         ...(changed?.customer ? { id: { in: changed.customer } } : {}),
       },
       orderBy: { name: "asc" },
+    }),
+    prisma.paymentMethod.findMany({
+      where: { businessId: context.businessId },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
   ]);
 
@@ -67,7 +85,7 @@ export async function catalogSnapshot(
       name: item.name,
       description: item.description,
       basePrice: Math.round(item.basePrice),
-      imageUrl: item.image,
+      imageUrl: mobileImageUrl(item.image),
       stockQuantity: item.stocks.reduce((sum, stock) => sum + stock.quantity, 0),
       isActive: item.isActive,
       version: version(item.updatedAt),
@@ -84,6 +102,18 @@ export async function catalogSnapshot(
       updatedAt: item.updatedAt.getTime(),
       deletedAt: null as number | null,
     })),
+    tables: tables.map((item) => ({
+      id: item.id,
+      businessId: item.businessId,
+      outletId: item.outletId,
+      name: item.name,
+      capacity: item.capacity,
+      isActive: item.isActive,
+      sortOrder: item.sortOrder,
+      version: version(item.updatedAt),
+      updatedAt: item.updatedAt.getTime(),
+      deletedAt: null as number | null,
+    })),
     customers: customers.map((item) => ({
       id: item.id,
       businessId: item.businessId,
@@ -91,6 +121,24 @@ export async function catalogSnapshot(
       phone: item.phone,
       email: item.email,
       notes: item.notes,
+      version: version(item.updatedAt),
+      updatedAt: item.updatedAt.getTime(),
+      deletedAt: null as number | null,
+    })),
+    paymentMethods: paymentMethods.map((item) => ({
+      id: item.id,
+      type: item.type,
+      name: item.name,
+      isEnabled: item.isEnabled,
+      sortOrder: item.sortOrder,
+      qrisImage: mobileImageUrl(item.qrisImage),
+      qrisNote: item.qrisNote,
+      provider: item.provider,
+      bankName: item.bankName,
+      accountNumber: item.accountNumber,
+      accountName: item.accountName,
+      walletNumber: item.walletNumber,
+      walletName: item.walletName,
       version: version(item.updatedAt),
       updatedAt: item.updatedAt.getTime(),
       deletedAt: null as number | null,

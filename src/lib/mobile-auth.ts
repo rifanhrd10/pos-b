@@ -35,12 +35,14 @@ export async function issueAccessToken(input: {
   businessId: string;
   employeeId: string;
   deviceId: string;
+  outletId?: string | null;
 }) {
   return new SignJWT({
     sid: input.sessionId,
     businessId: input.businessId,
     employeeId: input.employeeId,
     deviceId: input.deviceId,
+    ...(input.outletId ? { outletId: input.outletId } : {}),
   })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setSubject(input.userId)
@@ -57,6 +59,7 @@ export type MobileAuthContext = {
   businessId: string;
   employeeId: string;
   deviceId: string;
+  selectedOutletId: string | null;
   user: { id: string; name: string; email: string };
   employee: {
     id: string;
@@ -89,6 +92,7 @@ export async function authenticateMobile(request: NextRequest): Promise<MobileAu
   const businessId = typeof payload.businessId === "string" ? payload.businessId : "";
   const employeeId = typeof payload.employeeId === "string" ? payload.employeeId : "";
   const deviceId = typeof payload.deviceId === "string" ? payload.deviceId : "";
+  const tokenOutletId = typeof payload.outletId === "string" ? payload.outletId : null;
   if (!sessionId || !userId || !businessId || !employeeId || !deviceId) {
     throw new MobileApiError(401, "INVALID_ACCESS_TOKEN", "Isi token akses tidak valid");
   }
@@ -114,6 +118,7 @@ export async function authenticateMobile(request: NextRequest): Promise<MobileAu
     session.businessId !== businessId ||
     session.employeeId !== employeeId ||
     session.deviceId !== deviceId ||
+    (session.selectedOutletId ?? null) !== tokenOutletId ||
     !session.employee?.isActive
   ) {
     throw new MobileApiError(401, "SESSION_EXPIRED", "Sesi perangkat tidak aktif");
@@ -122,6 +127,13 @@ export async function authenticateMobile(request: NextRequest): Promise<MobileAu
   const permissions = session.employee.role.permissions;
   if (!permissions.includes("pos.access")) {
     throw new MobileApiError(403, "POS_ACCESS_DENIED", "Akun tidak memiliki akses POS");
+  }
+
+  const activeEmployeeOutletIds = session.employee.outlets
+    .filter((row) => row.outlet.isActive)
+    .map((row) => row.outlet.id);
+  if (session.selectedOutletId && !activeEmployeeOutletIds.includes(session.selectedOutletId)) {
+    throw new MobileApiError(403, "OUTLET_ACCESS_DENIED", "Kasir tidak lagi memiliki akses ke outlet perangkat");
   }
 
   await prisma.mobileSession.update({
@@ -135,11 +147,32 @@ export async function authenticateMobile(request: NextRequest): Promise<MobileAu
     businessId,
     employeeId,
     deviceId,
+    selectedOutletId: session.selectedOutletId,
     user: session.user,
     employee: session.employee,
     permissions,
-    outletIds: session.employee.outlets.filter((row) => row.outlet.isActive).map((row) => row.outlet.id),
+    outletIds: session.selectedOutletId ? [session.selectedOutletId] : activeEmployeeOutletIds,
   };
+}
+
+export async function requireDeviceAdministrator(context: MobileAuthContext) {
+  const activator = await prisma.employee.findFirst({
+    where: {
+      businessId: context.businessId,
+      userId: context.userId,
+      isActive: true,
+    },
+    include: { role: true },
+  });
+  const permissions = activator?.role.permissions ?? [];
+  if (!permissions.includes("employees.manage") && !permissions.includes("outlets.manage")) {
+    throw new MobileApiError(
+      403,
+      "DEVICE_ACTIVATION_DENIED",
+      "Aktivasi perangkat hanya dapat dilakukan oleh Admin atau Owner"
+    );
+  }
+  return activator!;
 }
 
 export function requireOutlet(context: MobileAuthContext, outletId: string) {

@@ -248,6 +248,7 @@ model MobileSession {
   userId           String
   businessId       String
   employeeId       String?
+  selectedOutletId String?
   deviceId         String
   deviceName       String
   refreshTokenHash String   @unique
@@ -264,6 +265,7 @@ model MobileSession {
 
   @@index([userId, businessId])
   @@index([deviceId])
+  @@index([selectedOutletId])
   @@index([expiresAt])
 }
 

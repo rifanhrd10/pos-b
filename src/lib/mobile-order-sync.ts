@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from "@prisma/client";
+import { PaymentMethodType, Prisma, type PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import type { MobileAuthContext } from "@/lib/mobile-auth";
 import { requireOutlet } from "@/lib/mobile-auth";
@@ -24,6 +24,7 @@ export const offlineOrderPayloadSchema = z.object({
   order: z.object({
     id: z.string().min(1).max(200),
     outletId: z.string().min(1).max(200),
+    employeeId: z.string().min(1).max(200),
     customerId: z.string().min(1).max(200).nullable().optional(),
     tableId: z.string().min(1).max(200).nullable().optional(),
     orderType: z.enum(["DINE_IN", "TAKEAWAY"]),
@@ -37,6 +38,12 @@ export const offlineOrderPayloadSchema = z.object({
     createdAt: z.number().int().positive(),
   }),
   items: z.array(orderItemSchema).min(1).max(500),
+  payment: z.object({
+    methodId: z.string().min(1).max(200).nullable().optional(),
+    method: z.string().min(1).max(80),
+    cashEntered: money.nullable().optional(),
+    changeAmount: money.nullable().optional(),
+  }).optional(),
   idempotencyKey: z.string().min(1).max(200),
 });
 
@@ -59,8 +66,9 @@ export async function createOfflineCashOrder(
   if (payload.idempotencyKey !== order.id || items.some((item) => item.orderId !== order.id)) {
     throw new MobileApiError(422, "INVALID_ORDER_REFERENCE", "Referensi idempotensi atau item order tidak konsisten");
   }
-  if ((order.paymentMethod ?? "").toUpperCase() !== "CASH" || order.paymentStatus !== "PAID") {
-    throw new MobileApiError(422, "OFFLINE_PAYMENT_NOT_ALLOWED", "Sinkronisasi offline hanya mendukung pembayaran CASH yang sudah lunas");
+  const requestedMethod = (payload.payment?.method ?? order.paymentMethod ?? "").toUpperCase();
+  if (!requestedMethod || order.paymentStatus !== "PAID") {
+    throw new MobileApiError(422, "PAYMENT_NOT_PAID", "Pembayaran transaksi belum valid");
   }
 
   const computedSubtotal = items.reduce((sum, item) => {
@@ -88,15 +96,32 @@ export async function createOfflineCashOrder(
 
   return prisma.$transaction(async (tx) => {
     await validateReferences(tx, context, payload);
+    const method = await resolvePaymentMethod(tx, context, payload);
     const officialNumber = orderNumber(order.id);
     const paidAt = new Date();
+    const orderCreatedAt = new Date(order.createdAt);
+    const cashierSession = await tx.cashierSession.findFirst({
+      where: {
+        businessId: context.businessId,
+        outletId: order.outletId,
+        employeeId: order.employeeId,
+        openedAt: { lte: orderCreatedAt },
+        OR: [
+          { isOpen: true },
+          { closedAt: { gte: orderCreatedAt } },
+        ],
+      },
+      orderBy: { openedAt: "desc" },
+      select: { id: true },
+    });
 
     await tx.order.create({
       data: {
         id: order.id,
         businessId: context.businessId,
         outletId: order.outletId,
-        employeeId: context.employeeId,
+        employeeId: order.employeeId,
+        cashierSessionId: cashierSession?.id ?? null,
         customerId: order.customerId ?? null,
         tableId: order.tableId ?? null,
         orderNumber: officialNumber,
@@ -108,7 +133,7 @@ export async function createOfflineCashOrder(
         serviceAmount: order.serviceAmount,
         totalAmount: computedTotal,
         paidAt,
-        createdAt: new Date(order.createdAt),
+        createdAt: orderCreatedAt,
         items: {
           create: items.map((item) => ({
             id: item.id,
@@ -126,11 +151,11 @@ export async function createOfflineCashOrder(
           create: {
             businessId: context.businessId,
             outletId: order.outletId,
-            employeeId: context.employeeId,
-            method: "CASH",
+            employeeId: order.employeeId,
+            method: method.type,
             totalAmount: computedTotal,
-            cashEntered: computedTotal,
-            changeAmount: 0,
+            cashEntered: method.cashEntered,
+            changeAmount: method.changeAmount,
             status: "PAID",
             paidAt,
           },
@@ -157,7 +182,7 @@ export async function createOfflineCashOrder(
               quantity: -item.quantity,
               note: `Penjualan offline ${officialNumber}`,
               reference: order.id,
-              createdBy: context.employeeId,
+              createdBy: order.employeeId,
             },
           },
         },
@@ -168,11 +193,66 @@ export async function createOfflineCashOrder(
   });
 }
 
+async function resolvePaymentMethod(
+  tx: TransactionClient,
+  context: MobileAuthContext,
+  payload: OfflineOrderPayload
+) {
+  const requestedType = (payload.payment?.method ?? payload.order.paymentMethod ?? "").toUpperCase();
+  if (!Object.values(PaymentMethodType).includes(requestedType as PaymentMethodType)) {
+    throw new MobileApiError(422, "PAYMENT_METHOD_INVALID", "Metode pembayaran tidak valid");
+  }
+  const methodId = payload.payment?.methodId ?? null;
+  const method = await tx.paymentMethod.findFirst({
+    where: {
+      businessId: context.businessId,
+      isEnabled: true,
+      ...(methodId ? { id: methodId } : { type: requestedType as PaymentMethodType }),
+    },
+    select: { id: true, type: true },
+  });
+  if (!method || method.type !== requestedType) {
+    throw new MobileApiError(422, "PAYMENT_METHOD_DISABLED", "Metode pembayaran tidak aktif pada admin panel");
+  }
+
+  if (method.type === "CASH") {
+    const cashEntered = payload.payment?.cashEntered ?? payload.order.totalAmount;
+    if (cashEntered < payload.order.totalAmount) {
+      throw new MobileApiError(422, "CASH_ENTERED_TOO_LOW", "Nominal uang diterima kurang dari total transaksi");
+    }
+    return {
+      type: method.type,
+      cashEntered,
+      changeAmount: cashEntered - payload.order.totalAmount,
+    };
+  }
+
+  return {
+    type: method.type,
+    cashEntered: null,
+    changeAmount: null,
+  };
+}
+
 async function validateReferences(
   tx: TransactionClient,
   context: MobileAuthContext,
   payload: OfflineOrderPayload
 ) {
+  const cashier = await tx.employee.findFirst({
+    where: {
+      id: payload.order.employeeId,
+      businessId: context.businessId,
+      isActive: true,
+      role: { permissions: { has: "pos.access" } },
+      outlets: { some: { outletId: payload.order.outletId } },
+    },
+    select: { id: true },
+  });
+  if (!cashier) {
+    throw new MobileApiError(422, "CASHIER_NOT_FOUND", "Kasir transaksi tidak aktif pada outlet ini");
+  }
+
   const productIds = [...new Set(payload.items.map((item) => item.productId))];
   const products = await tx.product.findMany({
     where: { businessId: context.businessId, id: { in: productIds } },

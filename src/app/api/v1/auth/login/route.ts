@@ -56,6 +56,7 @@ export async function POST(request: Request) {
     }
 
     const refreshToken = newRefreshToken();
+    const initialOutletId = employee.outlets.find((row) => row.outlet.isActive)?.outlet.id ?? null;
     const session = await prisma.$transaction(async (tx) => {
       await tx.mobileSession.updateMany({
         where: {
@@ -71,6 +72,7 @@ export async function POST(request: Request) {
           userId: user.id,
           businessId: employee.businessId,
           employeeId: employee.id,
+          selectedOutletId: initialOutletId,
           deviceId: input.deviceId,
           deviceName: input.deviceName,
           refreshTokenHash: hashRefreshToken(refreshToken),
@@ -86,6 +88,7 @@ export async function POST(request: Request) {
         businessId: employee.businessId,
         employeeId: employee.id,
         deviceId: input.deviceId,
+        outletId: initialOutletId,
       }),
       getEntitlement({
         businessId: employee.businessId,
