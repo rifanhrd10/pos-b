@@ -64,13 +64,18 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
           script: |
+            set -e
             cd /var/www/bayaro/pos-b
             git stash
             git pull origin main
             echo "AUTH_SECRET=${{ secrets.AUTH_SECRET }}" > .env
+            echo "MOBILE_AUTH_SECRET=${{ secrets.AUTH_SECRET }}" >> .env
             echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> .env
-            docker compose down
-            docker compose up -d --build
+            docker compose down --remove-orphans || true
+            docker stop pos-app pos-postgres 2>/dev/null || true
+            docker rm pos-app pos-postgres 2>/dev/null || true
+            docker compose up -d --build --remove-orphans
             docker exec pos-app npx prisma migrate deploy
             docker image prune -f
