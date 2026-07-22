@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import fs from "fs";
+import { randomUUID } from "crypto";
+import fs from "fs/promises";
 import path from "path";
+
+function resolveUploadDir() {
+  const configuredDir = process.env.UPLOAD_DIR?.trim() || "public/uploads";
+  return path.isAbsolute(configuredDir)
+    ? configuredDir
+    : path.join(process.cwd(), configuredDir);
+}
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -21,19 +29,24 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-    const uniqueName = `${Date.now()}-${safeName}`;
-    const uploadDir = path.join(process.cwd(), "public/uploads");
+    const ext = path.extname(file.name).toLowerCase();
+    const baseName = path.basename(file.name, ext).replace(/[^a-zA-Z0-9.\-_]/g, "_");
+    const safeName = `${baseName || "upload"}${ext}`;
+    const uniqueName = `${Date.now()}-${randomUUID()}-${safeName}`;
+    const uploadDir = resolveUploadDir();
 
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+    await fs.mkdir(uploadDir, { recursive: true });
 
     const filepath = path.join(uploadDir, uniqueName);
-    fs.writeFileSync(filepath, buffer);
+    await fs.writeFile(filepath, buffer);
 
     return NextResponse.json({ success: true, url: `/uploads/${uniqueName}` });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const message =
+      err?.code === "EACCES"
+        ? "Folder upload di server tidak punya permission tulis. Silakan cek konfigurasi volume/permission upload."
+        : err?.message || "Upload failed";
+
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -8,3 +8,5 @@ coverage
 *.tsbuildinfo
 
 /src/generated/prisma
+public/uploads/*
+!public/uploads/.gitkeep

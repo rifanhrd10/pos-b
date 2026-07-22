@@ -29,12 +29,15 @@ services:
       AUTH_URL: "https://pos.bayaro.id"
       AUTH_TRUST_HOST: "true"
       NEXTAUTH_URL: "https://pos.bayaro.id"
-      UPLOAD_DIR: "./public/uploads"
+      UPLOAD_DIR: "/app/public/uploads"
       GEMINI_API_KEY: "${GEMINI_API_KEY}"
       NODE_ENV: production
+    volumes:
+      - upload_data:/app/public/uploads
     depends_on:
       postgres:
         condition: service_healthy
 
 volumes:
   postgres_data:
+  upload_data:
