@@ -1,15 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { resolveUploadDir } from "@/lib/uploads";
 import { randomUUID } from "crypto";
 import fs from "fs/promises";
 import path from "path";
-
-function resolveUploadDir() {
-  const configuredDir = process.env.UPLOAD_DIR?.trim() || "public/uploads";
-  return path.isAbsolute(configuredDir)
-    ? configuredDir
-    : path.join(process.cwd(), configuredDir);
-}
 
 export async function POST(req: Request) {
   const session = await auth();
