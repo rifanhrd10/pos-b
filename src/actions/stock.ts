@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth, getBusinessContext } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { logActivity } from "@/lib/logger";
 import { StockMovementType } from "@prisma/client";
 import { adjustStockSchema } from "@/lib/validations";
 
@@ -228,6 +229,20 @@ export async function adjustStock(data: AdjustStockData) {
       });
 
       return stock;
+    });
+
+    await logActivity({
+      action: "ADJUST_STOCK",
+      businessId: ctx.businessId,
+      entityType: "STOCK",
+      entityId: result.id,
+      details: {
+        productId: data.productId,
+        type: data.type,
+        quantity: data.quantity,
+        note: data.note,
+        newStock: result.quantity
+      }
     });
 
     revalidatePath("/inventory");

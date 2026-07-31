@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { logActivity } from "@/lib/logger";
 import { productSchema } from "@/lib/validations";
 import { parseCurrencyValue } from "@/lib/currency";
 
@@ -220,6 +221,14 @@ export async function deleteProduct(id: string) {
   await prisma.product.update({
     where: { id },
     data: { isActive: false },
+  });
+
+  await logActivity({
+    action: "DELETE_PRODUCT",
+    businessId: business.id,
+    entityType: "PRODUCT",
+    entityId: product.id,
+    details: { productName: product.name }
   });
 
   return { success: true };

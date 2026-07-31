@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { logActivity } from "@/lib/logger";
 import bcrypt from "bcryptjs";
 import type { Prisma } from "@prisma/client";
 
@@ -591,6 +592,14 @@ export async function voidOrder(
   await prisma.order.update({
     where: { id: orderId },
     data: { status: "VOID", voidReason: reason },
+  });
+
+  await logActivity({
+    action: "VOID_ORDER",
+    businessId: order.businessId,
+    entityType: "ORDER",
+    entityId: order.id,
+    details: { orderNumber: order.orderNumber, reason, authorizedBy: employeeId }
   });
 
   return { ok: true };

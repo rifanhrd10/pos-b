@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { employeeSchema } from "@/lib/validations";
 import bcrypt from "bcryptjs";
+import { logActivity } from "@/lib/logger";
 
 export async function getEmployees(businessId: string) {
   return prisma.employee.findMany({
@@ -129,10 +130,28 @@ export async function toggleEmployeeStatus(id: string) {
     data: { isActive: !employee.isActive },
   });
 
+  await logActivity({
+    action: "TOGGLE_EMPLOYEE_STATUS",
+    businessId: employee.businessId,
+    entityType: "EMPLOYEE",
+    entityId: employee.id,
+    details: { employeeName: employee.name, newStatus: !employee.isActive ? "Inactive" : "Active" }
+  });
+
   return { success: true };
 }
 
 export async function deleteEmployee(id: string) {
-  await prisma.employee.delete({ where: { id } });
+  const employee = await prisma.employee.findUnique({ where: { id } });
+  if (employee) {
+    await prisma.employee.delete({ where: { id } });
+    await logActivity({
+      action: "DELETE_EMPLOYEE",
+      businessId: employee.businessId,
+      entityType: "EMPLOYEE",
+      entityId: employee.id,
+      details: { employeeName: employee.name }
+    });
+  }
   return { success: true };
 }
