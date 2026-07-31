@@ -183,7 +183,7 @@ export function PaymentVerificationPanel({ initialRequests = [] }: { initialRequ
                         setApproveForm({ 
                           status: "active",
                           plan: req.currentPlan.toLowerCase().includes('basic') ? 'basic' : 'pro',
-                          durationMonths: 1 
+                          durationMonths: "1" 
                         })
                       }} className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-blue-700 hover:shadow-md transition-all active:scale-95">
                         Tinjau & Setujui
