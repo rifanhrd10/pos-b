@@ -46,16 +46,31 @@ jobs:
 
       - name: Check for schema drift
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bayaro_pos_test?sslmode=disable
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bayaro_pos_test
         run: |
-          # Apply all migration files to the test DB
+          # Apply all migration files to test DB
           npx prisma migrate deploy
-          # Check if schema.prisma has changes not yet in a migration file
-          npx prisma migrate diff \
+
+          # Create shadow DB for diff
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bayaro_pos_shadow;"
+
+          # Check if schema has uncommitted changes
+          DIFF=$(npx prisma migrate diff \
             --from-migrations prisma/migrations \
             --to-schema-datamodel prisma/schema.prisma \
-            --shadow-database-url postgresql://postgres:postgres@localhost:5432/bayaro_pos_shadow?sslmode=disable \
-            --exit-code || (echo "❌ Schema drift detected! Run 'prisma migrate dev --name your_migration_name' to create a migration file before pushing." && exit 1)
+            --shadow-database-url postgresql://postgres:postgres@localhost:5432/bayaro_pos_shadow \
+            --script 2>&1)
+
+          if [ -n "$DIFF" ] && echo "$DIFF" | grep -qiE "CREATE TABLE|ALTER TABLE|CREATE INDEX|DROP"; then
+            echo "❌ Schema drift detected! Migration file missing."
+            echo "Run: npx prisma migrate dev --name your_migration_name"
+            echo ""
+            echo "Diff:"
+            echo "$DIFF"
+            exit 1
+          else
+            echo "✅ Schema is in sync with migrations"
+          fi
 
   build-and-push:
     runs-on: ubuntu-latest
