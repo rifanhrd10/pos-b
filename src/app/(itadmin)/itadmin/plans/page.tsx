@@ -1,7 +1,6 @@
 import { getPlansList } from "@/actions/itadmin"
 import { PlansClient } from "./plans-client"
 
-// All available feature keys
 const ALL_FEATURE_KEYS = [
   { key: "dashboard.view", label: "Dashboard" },
   { key: "pos.access", label: "POS Kasir" },
@@ -31,8 +30,8 @@ export default async function PlansPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Paket & Harga</h1>
-        <p className="text-sm text-slate-400">Atur plan, harga, dan fitur yang bisa diakses per paket</p>
+        <h1 className="text-2xl font-bold text-slate-900">Paket SaaS</h1>
+        <p className="text-sm text-slate-500">Atur harga, limit outlet/karyawan, dan fitur yang tersedia untuk tiap paket.</p>
       </div>
       <PlansClient plans={plans} featureKeys={ALL_FEATURE_KEYS} />
     </div>

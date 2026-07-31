@@ -141,6 +141,7 @@ export async function updateSubscription(id: string, data: {
   status?: string;
   planId?: string;
   currentPeriodEnd?: string;
+  trialEndsAt?: string;
 }) {
   const admin = await requireITAdmin()
   if (!admin) return { success: false, error: "Unauthorized" }
@@ -152,14 +153,134 @@ export async function updateSubscription(id: string, data: {
         ...(data.status && { status: data.status }),
         ...(data.planId && { planId: data.planId }),
         ...(data.currentPeriodEnd && { currentPeriodEnd: new Date(data.currentPeriodEnd) }),
+        ...(data.trialEndsAt && { trialEndsAt: new Date(data.trialEndsAt) }),
       },
     })
+    revalidatePath("/itadmin/dashboard")
     revalidatePath("/itadmin/subscriptions")
     revalidatePath("/itadmin/businesses")
     return { success: true }
   } catch (e) {
     return { success: false, error: "Gagal update subscription" }
   }
+}
+
+export async function updateTenantSubscription(
+  subscriptionId: string,
+  data: {
+    status?: "trial" | "active" | "expired" | "cancelled" | "suspended" | "pending";
+    planId?: string;
+    trialDays?: number;
+    activeDays?: number;
+    trialEndsAt?: string;
+    currentPeriodEnd?: string;
+  }
+) {
+  const admin = await requireITAdmin()
+  if (!admin) return { success: false, error: "Unauthorized" }
+
+  const now = new Date()
+  const payload: {
+    status?: string;
+    planId?: string;
+    trialEndsAt?: Date;
+    currentPeriodEnd?: Date;
+  } = {}
+
+  if (data.status) payload.status = data.status
+  if (data.planId) payload.planId = data.planId
+  if (data.trialEndsAt) payload.trialEndsAt = new Date(data.trialEndsAt)
+  if (data.currentPeriodEnd) payload.currentPeriodEnd = new Date(data.currentPeriodEnd)
+  if (data.trialDays) {
+    payload.status = "trial"
+    payload.trialEndsAt = new Date(now.getTime() + data.trialDays * 24 * 60 * 60 * 1000)
+    payload.currentPeriodEnd = payload.trialEndsAt
+  }
+  if (data.activeDays) {
+    payload.status = "active"
+    payload.currentPeriodEnd = new Date(now.getTime() + data.activeDays * 24 * 60 * 60 * 1000)
+  }
+
+  try {
+    await prisma.subscription.update({ where: { id: subscriptionId }, data: payload })
+    revalidatePath("/itadmin/dashboard")
+    revalidatePath("/itadmin/subscriptions")
+    revalidatePath("/itadmin/businesses")
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: "Gagal update toko" }
+  }
+}
+
+export async function getTenantManagementDashboard() {
+  const admin = await requireITAdmin()
+  if (!admin) return null
+
+  const now = new Date()
+  const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  const [businesses, plans, orderCounts] = await Promise.all([
+    prisma.business.findMany({
+      include: {
+        owner: { select: { name: true, email: true } },
+        subscription: { include: { plan: true } },
+        _count: { select: { outlets: true, employees: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.plan.findMany({ orderBy: { price: "asc" } }),
+    prisma.order.groupBy({
+      by: ["businessId"],
+      where: { createdAt: { gte: monthStart }, status: "PAID" },
+      _count: { id: true },
+    }),
+  ])
+
+  const orderMap = new Map(orderCounts.map((o) => [o.businessId, o._count.id]))
+  const tenants = businesses.map((business) => {
+    const subscription = business.subscription
+    const status = subscription?.status || "pending"
+    const expiryDate = subscription?.currentPeriodEnd || subscription?.trialEndsAt || null
+    const daysLeft = expiryDate
+      ? Math.ceil((expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
+      : null
+
+    return {
+      id: business.id,
+      name: business.name,
+      ownerName: business.owner.name,
+      ownerEmail: business.owner.email,
+      status,
+      subscriptionId: subscription?.id || null,
+      planId: subscription?.planId || null,
+      planName: subscription?.plan.displayName || "Belum ada plan",
+      currentPeriodEnd: subscription?.currentPeriodEnd?.toISOString() || null,
+      trialEndsAt: subscription?.trialEndsAt?.toISOString() || null,
+      daysLeft,
+      outletCount: business._count.outlets,
+      employeeCount: business._count.employees,
+      ordersThisMonth: orderMap.get(business.id) || 0,
+      createdAt: business.createdAt.toISOString(),
+    }
+  })
+
+  const stats = {
+    total: tenants.length,
+    active: tenants.filter((t) => t.status === "active").length,
+    trial: tenants.filter((t) => t.status === "trial").length,
+    inactive: tenants.filter((t) => ["expired", "cancelled", "suspended", "pending"].includes(t.status)).length,
+    expiringSoon: tenants.filter((t) => {
+      if (!t.daysLeft) return false
+      return t.daysLeft >= 0 && t.daysLeft <= 7 && ["active", "trial"].includes(t.status)
+    }).length,
+  }
+
+  const actionQueue = tenants
+    .filter((t) => t.status === "pending" || t.status === "expired" || t.status === "suspended" || (t.daysLeft !== null && t.daysLeft <= 7 && ["active", "trial"].includes(t.status)))
+    .slice(0, 8)
+
+  return { stats, tenants, actionQueue, plans }
 }
 
 // ─── PLANS CRUD ──────────────────────────────────────────────────────────────

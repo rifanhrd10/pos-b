@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ITAdminShell } from "@/components/itadmin/itadmin-shell";
+import { Toaster } from "sonner";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ export default async function ITAdminLayout({ children }: { children: React.Reac
 
   return (
     <ITAdminShell userName={session.user.name || "IT Admin"}>
+      <Toaster position="top-right" />
       {children}
     </ITAdminShell>
   );
