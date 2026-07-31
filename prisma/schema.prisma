@@ -29,6 +29,7 @@ model User {
   businesses Business[]
   employees  Employee[]
   mobileSessions MobileSession[]
+  activityLogs   ActivityLog[]
 }
 
 model Account {
@@ -109,6 +110,7 @@ model Business {
   updatedAt   DateTime     @updatedAt
 
   owner      User       @relation(fields: [ownerId], references: [id])
+  paymentRequests PaymentRequest[]
   outlets    Outlet[]
   employees  Employee[]
   roles      Role[]
@@ -129,6 +131,7 @@ model Business {
   mobileSessions MobileSession[]
   syncMutations  SyncMutation[]
   syncChanges    SyncChange[]
+  activityLogs   ActivityLog[]
 }
 
 model Outlet {
@@ -881,4 +884,44 @@ model Customer {
   orders   Order[]
 
   @@unique([businessId, phone])
+}
+
+enum PaymentRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model PaymentRequest {
+  id              String   @id @default(cuid())
+  businessId      String
+  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  requestedPlanId String?
+  proofImageUrl   String?
+  status          PaymentRequestStatus @default(PENDING)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ============================================================
+// AUDIT & ACTIVITY LOGS
+// ============================================================
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  businessId String?  
+  userId     String?  
+  userName   String?  
+  action     String   
+  entityType String?  
+  entityId   String?  
+  details    Json?    
+  createdAt  DateTime @default(now())
+
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, createdAt])
+  @@index([userId, createdAt])
 }
