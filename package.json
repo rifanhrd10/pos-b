@@ -19,6 +19,7 @@
     "@types/flatpickr": "^3.0.2",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",
     "driver.js": "^1.6.0",
     "flatpickr": "^4.6.13",
