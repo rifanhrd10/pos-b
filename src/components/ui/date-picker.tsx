@@ -39,8 +39,11 @@ export function DatePicker({
         onChange={(dates) => {
           if (dates.length > 0 && onChange) {
             const date = dates[0]
-            const formatted = date.toISOString().split('T')[0]
-            onChange(formatted)
+            // Use local date parts to avoid UTC timezone shift
+            const y = date.getFullYear()
+            const m = String(date.getMonth() + 1).padStart(2, "0")
+            const d = String(date.getDate()).padStart(2, "0")
+            onChange(`${y}-${m}-${d}`)
           }
         }}
         options={{
