@@ -48,29 +48,30 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bayaro_pos_test
         run: |
-          # Apply all migration files to test DB
+          # Apply all existing migrations to fresh test DB
           npx prisma migrate deploy
 
-          # Create shadow DB for diff
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bayaro_pos_shadow;"
+          # Check status - fails if there are pending/unapplied migrations
+          STATUS=$(npx prisma migrate status 2>&1)
+          echo "$STATUS"
+          if echo "$STATUS" | grep -q "Following migrations have not yet been applied"; then
+            echo "❌ There are unapplied migrations. Run 'npx prisma migrate dev' locally."
+            exit 1
+          fi
 
-          # Check if schema has uncommitted changes
+          # Check if schema.prisma has changes beyond what's in migrations
+          # by generating SQL from current schema and comparing
           DIFF=$(npx prisma migrate diff \
             --from-migrations prisma/migrations \
             --to-schema-datamodel prisma/schema.prisma \
-            --shadow-database-url postgresql://postgres:postgres@localhost:5432/bayaro_pos_shadow \
-            --script 2>&1)
-
-          if [ -n "$DIFF" ] && echo "$DIFF" | grep -qiE "CREATE TABLE|ALTER TABLE|CREATE INDEX|DROP"; then
-            echo "❌ Schema drift detected! Migration file missing."
-            echo "Run: npx prisma migrate dev --name your_migration_name"
-            echo ""
-            echo "Diff:"
-            echo "$DIFF"
+            --script 2>&1 || true)
+          echo "Schema diff output: $DIFF"
+          if echo "$DIFF" | grep -qiE "^(CREATE|ALTER|DROP) "; then
+            echo "❌ Schema has changes not covered by any migration file!"
+            echo "Run: npx prisma migrate dev --name <migration_name>"
             exit 1
-          else
-            echo "✅ Schema is in sync with migrations"
           fi
+          echo "✅ Schema is in sync with migrations"
 
   build-and-push:
     runs-on: ubuntu-latest
