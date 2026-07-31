@@ -4,6 +4,7 @@ import { auth, getBusinessContext } from "@/lib/auth";
 import { ALL_PERMISSIONS, getCurrentEmployeePermissions } from "@/lib/permissions";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { GlobalAnnouncementProvider } from "@/components/layout/global-announcement-provider";
 import { getActiveOutletId } from "@/lib/outlet-context";
 import { Toaster } from "sonner";
 
@@ -66,22 +67,29 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const planFeatures = (subscription?.plan.features as string[]) || [];
   const visiblePlanFeatures = isOwner ? [] : planFeatures;
 
+  const pendingRequest = await prisma.paymentRequest.findFirst({
+    where: { businessId, status: "PENDING" }
+  });
+  const hasPendingPayment = !!pendingRequest;
+
   return (
     <>
-      <DashboardShell
-        userName={userName}
-        userRole={userRole}
-        businessName={ctx.businessName}
-        outletName={outletName}
-        permissions={permissions}
-        planFeatures={visiblePlanFeatures}
-        outlets={outlets}
-        activeOutletId={activeOutletId}
-        plan={plan}
-      >
-        {children}
-      </DashboardShell>
-      <TourGuide hasCompletedTour={hasCompletedTour} />
+      <GlobalAnnouncementProvider plan={plan} businessId={businessId} hasPendingPayment={hasPendingPayment}>
+        <DashboardShell
+          userName={userName}
+          userRole={userRole}
+          businessName={ctx.businessName}
+          outletName={outletName}
+          permissions={permissions}
+          planFeatures={visiblePlanFeatures}
+          outlets={outlets}
+          activeOutletId={activeOutletId}
+          plan={plan}
+        >
+          {children}
+        </DashboardShell>
+        <TourGuide hasCompletedTour={hasCompletedTour} />
+      </GlobalAnnouncementProvider>
       <Toaster position="top-right" />
     </>
   );

@@ -4,6 +4,7 @@ const settingsNav = [
   { label: "Profil Bisnis", href: "/settings/business", icon: "Building2" },
   { label: "Pajak & Service", href: "/settings/tax", icon: "Receipt" },
   { label: "Metode Pembayaran", href: "/settings/payment", icon: "CreditCard" },
+  { label: "Riwayat Aktivitas", href: "/settings/logs", icon: "Activity" },
   { label: "General", href: "/settings/general", icon: "Settings" },
   { label: "Akun", href: "/settings/account", icon: "User" },
 ]

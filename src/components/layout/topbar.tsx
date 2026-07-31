@@ -301,6 +301,7 @@ function UserDropdown({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState<"seed" | "cleanse" | null>(null);
   const [confirmCleanse, setConfirmCleanse] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showSeedDialog, setShowSeedDialog] = useState(false);
   const [seedOutletId, setSeedOutletId] = useState(activeOutletId ?? outlets[0]?.id ?? "");
   const [historyDays, setHistoryDays] = useState(30);
@@ -438,16 +439,47 @@ function UserDropdown({
 
           {/* Logout */}
           <div className="p-1.5">
-            <a
-              href="/login"
+            <button
+              onClick={() => {
+                setShowLogoutConfirm(true);
+                setOpen(false);
+              }}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
             >
               <LogOut size={16} />
               Keluar
-            </a>
+            </button>
           </div>
           </div>
       )}
+
+      {showLogoutConfirm && createPortal((
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600 mb-4">
+              <LogOut size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900">Konfirmasi Keluar</h3>
+            <p className="mt-2 text-sm text-slate-500 leading-relaxed">
+              Apakah Anda yakin ingin keluar dari aplikasi? Pastikan Anda sudah menyimpan semua perubahan.
+            </p>
+            <div className="mt-8 flex items-center gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                Batal
+              </button>
+              <a
+                href="/login"
+                className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-red-700 transition-colors shadow-sm shadow-red-200"
+              >
+                Ya, Keluar
+              </a>
+            </div>
+          </div>
+        </div>
+      ), document.body)}
 
       {showSeedDialog && createPortal((
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-5">
