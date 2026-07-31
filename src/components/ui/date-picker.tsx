@@ -47,7 +47,9 @@ export function DatePicker({
           }
         }}
         options={{
-          dateFormat: "d M Y",
+          dateFormat: "Y-m-d",      // internal format = YYYY-MM-DD (matches value prop)
+          altInput: true,           // show human-readable display
+          altFormat: "d M Y",       // display format: "04 Agu 2026"
           locale: Indonesian,
           minDate: minDate,
           maxDate: maxDate,
