@@ -46,13 +46,16 @@ jobs:
 
       - name: Check for schema drift
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bayaro_pos_test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bayaro_pos_test?sslmode=disable
         run: |
+          # Apply all migration files to the test DB
           npx prisma migrate deploy
+          # Check if schema.prisma has changes not yet in a migration file
           npx prisma migrate diff \
-            --from-schema-datasource prisma/schema.prisma \
+            --from-migrations prisma/migrations \
             --to-schema-datamodel prisma/schema.prisma \
-            --exit-code || (echo "❌ Schema drift detected! Run 'prisma migrate dev' to create a migration file." && exit 1)
+            --shadow-database-url postgresql://postgres:postgres@localhost:5432/bayaro_pos_shadow?sslmode=disable \
+            --exit-code || (echo "❌ Schema drift detected! Run 'prisma migrate dev --name your_migration_name' to create a migration file before pushing." && exit 1)
 
   build-and-push:
     runs-on: ubuntu-latest
