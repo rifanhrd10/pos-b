@@ -60,7 +60,6 @@ jobs:
           fi
 
           # Check if schema.prisma has changes beyond what's in migrations
-          # by generating SQL from current schema and comparing
           DIFF=$(npx prisma migrate diff \
             --from-migrations prisma/migrations \
             --to-schema-datamodel prisma/schema.prisma \
@@ -75,7 +74,7 @@ jobs:
 
   build-and-push:
     runs-on: ubuntu-latest
-    needs: check-migrations
+    # Run in parallel with check-migrations — no dependency between them
     permissions:
       contents: read
       packages: write
@@ -111,11 +110,11 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          cache-to: type=inline
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
-    needs: build-and-push
+    needs: [check-migrations, build-and-push]
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to VPS
@@ -143,18 +142,8 @@ jobs:
             echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
             docker compose pull pos-app
             docker compose up -d --no-build --remove-orphans
-            # Wait until pos-app is healthy before running migrations
+            # Wait for container healthy then run migration once
             echo "Waiting for pos-app to be ready..."
-            for i in $(seq 1 30); do
-              if docker exec pos-app npx prisma migrate deploy 2>&1; then
-                echo "✅ Migrations applied successfully"
-                break
-              fi
-              echo "Attempt $i/30 failed, retrying in 3s..."
-              sleep 3
-              if [ $i -eq 30 ]; then
-                echo "❌ Migration failed after 30 attempts"
-                exit 1
-              fi
-            done
+            timeout 90 bash -c 'until docker exec pos-app npx prisma migrate deploy 2>&1; do sleep 3; done'
+            echo "✅ Migrations applied successfully"
             docker image prune -f
